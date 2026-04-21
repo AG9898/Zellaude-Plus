@@ -19,7 +19,12 @@ dim()   { printf '\033[2m%s\033[0m\n' "$*"; }
 if [ "${1:-}" = "--uninstall" ]; then
     echo "Uninstalling zellaude..."
     rm -f "$PLUGIN_PATH" && dim "  removed $PLUGIN_PATH"
+    rm -f "$PLUGIN_DIR/zellaude-codex-hook.sh" && dim "  removed $PLUGIN_DIR/zellaude-codex-hook.sh"
     "$PROJECT_DIR/scripts/install-hooks.sh" --uninstall
+    CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+    if [ -f "$CODEX_HOME/hooks.json" ]; then
+        "$PROJECT_DIR/scripts/install-codex-hooks.sh" --uninstall
+    fi
     green "Done. Restart Zellij to take effect."
     exit 0
 fi
@@ -56,7 +61,7 @@ fi
 # ── Build ──────────────────────────────────────────────────
 
 echo "Building zellaude..."
-cargo build --release --manifest-path "$PROJECT_DIR/Cargo.toml" 2>&1 | tail -1
+cargo build --release --target wasm32-wasip1 --manifest-path "$PROJECT_DIR/Cargo.toml" 2>&1 | tail -1
 
 # ── Install plugin ─────────────────────────────────────────
 
@@ -64,9 +69,19 @@ mkdir -p "$PLUGIN_DIR"
 cp "$PROJECT_DIR/target/wasm32-wasip1/release/zellaude.wasm" "$PLUGIN_PATH"
 dim "  installed $PLUGIN_PATH"
 
-# ── Install hooks ──────────────────────────────────────────
+# ── Install Claude Code hooks ──────────────────────────────
 
 "$PROJECT_DIR/scripts/install-hooks.sh"
+
+# ── Install Codex hooks (skipped if Codex is not installed) ─
+
+CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+if command -v codex &>/dev/null || [ -d "$CODEX_HOME" ]; then
+    "$PROJECT_DIR/scripts/install-codex-hooks.sh"
+else
+    dim "  Codex CLI not found — skipping Codex hook installation"
+    dim "  (Run scripts/install-codex-hooks.sh manually once Codex is installed)"
+fi
 
 # ── Done ───────────────────────────────────────────────────
 

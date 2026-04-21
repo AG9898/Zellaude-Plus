@@ -16,13 +16,6 @@ register_plugin!(State);
 
 impl ZellijPlugin for State {
     fn load(&mut self, _configuration: BTreeMap<String, String>) {
-        request_permission(&[
-            PermissionType::ReadApplicationState,
-            PermissionType::ChangeApplicationState,
-            PermissionType::RunCommands,
-            PermissionType::ReadCliPipes,
-            PermissionType::MessageAndLaunchOtherPlugins,
-        ]);
         subscribe(&[
             EventType::TabUpdate,
             EventType::PaneUpdate,
@@ -32,11 +25,14 @@ impl ZellijPlugin for State {
             EventType::RunCommandResult,
             EventType::PermissionRequestResult,
         ]);
+        request_permission(&[
+            PermissionType::ReadApplicationState,
+            PermissionType::ChangeApplicationState,
+            PermissionType::RunCommands,
+            PermissionType::ReadCliPipes,
+            PermissionType::MessageAndLaunchOtherPlugins,
+        ]);
         set_timeout(TIMER_INTERVAL);
-
-        // Load persisted settings (may be retried in PermissionRequestResult
-        // if this fires before permissions are granted)
-        self.load_config();
     }
 
     fn update(&mut self, event: Event) -> bool {
@@ -85,7 +81,7 @@ impl ZellijPlugin for State {
                         for region in &self.click_regions {
                             if col >= region.start_col && col < region.end_col {
                                 if region.is_waiting {
-                                    focus_terminal_pane(region.pane_id, false);
+                                    focus_terminal_pane(region.pane_id, false, false);
                                 } else {
                                     switch_tab_to(region.tab_index as u32 + 1);
                                 }
@@ -144,6 +140,10 @@ impl ZellijPlugin for State {
                         self.hooks_installed = true;
                         false
                     }
+                    Some("install_codex_hooks") => {
+                        self.codex_hooks_installed = true;
+                        false
+                    }
                     _ => false,
                 }
             }
@@ -158,20 +158,22 @@ impl ZellijPlugin for State {
                 }
                 has_flashes || stale_changed || flash_changed || self.has_elapsed_display()
             }
-            Event::PermissionRequestResult(_) => {
-                // Now that permissions are granted, mark as non-selectable
-                // so the plugin stays visible during fullscreen
+            Event::PermissionRequestResult(status) => {
+                // Keep the pane visible during fullscreen regardless of status.
                 set_selectable(false);
-                // Permissions granted — ask existing instances for their state
-                self.request_sync();
-                // Retry config load (the one in load() may have been dropped
-                // because it ran before permissions were granted)
-                if !self.config_loaded {
-                    self.load_config();
-                }
-                // Auto-install hook script and register Claude Code hooks
-                if !self.hooks_installed {
-                    installer::run_install();
+                if status == PermissionStatus::Granted {
+                    // Permissions granted — ask existing instances for their state.
+                    self.request_sync();
+                    if !self.config_loaded {
+                        self.load_config();
+                    }
+                    // Auto-install hook scripts and register hooks for both CLIs.
+                    if !self.hooks_installed {
+                        installer::run_install();
+                    }
+                    if !self.codex_hooks_installed {
+                        installer::run_codex_install();
+                    }
                 }
                 false
             }
@@ -198,7 +200,7 @@ impl ZellijPlugin for State {
                 // Notification click — focus the requested pane
                 if let Some(ref payload) = pipe_message.payload {
                     if let Ok(pane_id) = payload.trim().parse::<u32>() {
-                        focus_terminal_pane(pane_id, false);
+                        focus_terminal_pane(pane_id, false, false);
                     }
                 }
                 false

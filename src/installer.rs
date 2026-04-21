@@ -3,10 +3,18 @@ use zellij_tile::prelude::run_command;
 
 const HOOK_VERSION_TAG: &str = concat!("# zellaude v", env!("CARGO_PKG_VERSION"));
 
-/// Generate hook script content with version tag inserted after the shebang.
 fn hook_script_content() -> String {
     let original = include_str!("../scripts/zellaude-hook.sh");
-    // Insert version tag after the shebang line
+    if let Some(pos) = original.find('\n') {
+        let (shebang, rest) = original.split_at(pos);
+        format!("{shebang}\n{HOOK_VERSION_TAG}{rest}")
+    } else {
+        original.to_string()
+    }
+}
+
+fn codex_hook_script_content() -> String {
+    let original = include_str!("../scripts/zellaude-codex-hook.sh");
     if let Some(pos) = original.find('\n') {
         let (shebang, rest) = original.split_at(pos);
         format!("{shebang}\n{HOOK_VERSION_TAG}{rest}")
@@ -76,8 +84,6 @@ jq --argjson events "$EVENTS" --argjson entry "$ENTRY" '
 echo "installed"
 "##;
 
-/// Run the idempotent hook installation command.
-/// Checks if hooks are current, writes the hook script, and registers hooks.
 pub fn run_install() {
     let cmd = INSTALL_TEMPLATE
         .replace("__VERSION_TAG__", HOOK_VERSION_TAG)
@@ -85,5 +91,91 @@ pub fn run_install() {
 
     let mut ctx = BTreeMap::new();
     ctx.insert("type".into(), "install_hooks".into());
+    run_command(&["sh", "-c", &cmd], ctx);
+}
+
+const CODEX_INSTALL_TEMPLATE: &str = r##"set -e
+HOOK_PATH="$HOME/.config/zellij/plugins/zellaude-codex-hook.sh"
+CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+HOOKS_FILE="$CODEX_HOME/hooks.json"
+CONFIG_FILE="$CODEX_HOME/config.toml"
+
+# Skip silently if Codex has never been set up
+if ! command -v codex >/dev/null 2>&1 && [ ! -d "$CODEX_HOME" ]; then
+  echo "skipped"
+  exit 0
+fi
+
+# Check if already current
+if grep -qF '__VERSION_TAG__' "$HOOK_PATH" 2>/dev/null; then
+  if [ -f "$HOOKS_FILE" ] && grep -qF "$HOOK_PATH" "$HOOKS_FILE" 2>/dev/null; then
+    echo "current"
+    exit 0
+  fi
+fi
+
+# Write hook script
+mkdir -p "$(dirname "$HOOK_PATH")"
+cat > "$HOOK_PATH" << 'ZELLAUDE_CODEX_HOOK_EOF'
+__CODEX_HOOK_SCRIPT__
+ZELLAUDE_CODEX_HOOK_EOF
+chmod +x "$HOOK_PATH"
+
+if ! command -v jq >/dev/null 2>&1; then
+  echo "no_jq"
+  exit 0
+fi
+
+mkdir -p "$CODEX_HOME"
+if [ ! -f "$HOOKS_FILE" ]; then
+  echo '{}' > "$HOOKS_FILE"
+fi
+
+cp "$HOOKS_FILE" "$HOOKS_FILE.bak"
+
+# Remove any existing zellaude-codex-hook.sh entries
+tmp=$(mktemp)
+jq '
+  if .hooks and (.hooks | type == "object") then
+    .hooks |= with_entries(
+      .value |= [
+        .[] | . as $group |
+        ($group.hooks // []) | map(select((.command // "") | endswith("zellaude-codex-hook.sh") | not)) |
+        . as $filtered |
+        if length > 0 then ($group | .hooks = $filtered) else empty end
+      ]
+    ) | .hooks |= with_entries(select(.value | length > 0)) |
+    if .hooks == {} then del(.hooks) else . end
+  else . end
+' "$HOOKS_FILE" > "$tmp" && mv "$tmp" "$HOOKS_FILE"
+
+# Add new entries — Codex hooks.json expects PascalCase event keys.
+EVENTS='["PreToolUse","PostToolUse","PermissionRequest","SessionStart","UserPromptSubmit","Stop"]'
+ENTRY=$(jq -nc --arg cmd "$HOOK_PATH" '[{"hooks": [{"type": "command", "command": $cmd, "timeout": 5}]}]')
+tmp=$(mktemp)
+jq --argjson events "$EVENTS" --argjson entry "$ENTRY" '
+  .hooks //= {} |
+  reduce ($events[]) as $event (.; .hooks[$event] = (.hooks[$event] // []) + $entry)
+' "$HOOKS_FILE" > "$tmp" && mv "$tmp" "$HOOKS_FILE"
+
+# Ensure codex_hooks feature is enabled
+if [ -f "$CONFIG_FILE" ]; then
+  if ! grep -q 'codex_hooks' "$CONFIG_FILE" 2>/dev/null; then
+    printf '\n[features]\ncodex_hooks = true\n' >> "$CONFIG_FILE"
+  fi
+else
+  printf '[features]\ncodex_hooks = true\n' > "$CONFIG_FILE"
+fi
+
+echo "installed"
+"##;
+
+pub fn run_codex_install() {
+    let cmd = CODEX_INSTALL_TEMPLATE
+        .replace("__VERSION_TAG__", HOOK_VERSION_TAG)
+        .replace("__CODEX_HOOK_SCRIPT__", &codex_hook_script_content());
+
+    let mut ctx = BTreeMap::new();
+    ctx.insert("type".into(), "install_codex_hooks".into());
     run_command(&["sh", "-c", &cmd], ctx);
 }

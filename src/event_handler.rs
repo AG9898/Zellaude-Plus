@@ -1,4 +1,4 @@
-use crate::state::{Activity, FlashMode, HookPayload, SessionInfo, State};
+use crate::state::{Activity, AgentSource, FlashMode, HookPayload, SessionInfo, State};
 
 pub fn handle_hook_event(state: &mut State, payload: HookPayload) {
     // Capture env info for use in notifications
@@ -51,6 +51,11 @@ pub fn handle_hook_event(state: &mut State, payload: HookPayload) {
         _ => Activity::Idle,
     };
 
+    let source = match payload.source.as_deref() {
+        Some("codex") => AgentSource::Codex,
+        _ => AgentSource::Claude,
+    };
+
     let (tab_index, tab_name) = state
         .pane_to_tab
         .get(&payload.pane_id)
@@ -69,7 +74,10 @@ pub fn handle_hook_event(state: &mut State, payload: HookPayload) {
             last_event_ts: 0,
             cwd: None,
             last_ts_ms: 0,
+            source,
         });
+
+    session.source = source;
 
     if matches!(activity, Activity::Waiting) {
         match state.settings.flash {

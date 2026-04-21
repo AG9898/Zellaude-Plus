@@ -19,6 +19,13 @@ pub fn unix_now_ms() -> u64 {
 
 pub const FLASH_DURATION_MS: u64 = 2000;
 
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Default)]
+pub enum AgentSource {
+    #[default]
+    Claude,
+    Codex,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Activity {
     Init,
@@ -43,6 +50,8 @@ pub struct SessionInfo {
     pub cwd: Option<String>,
     #[serde(default)]
     pub last_ts_ms: u64,
+    #[serde(default)]
+    pub source: AgentSource,
 }
 
 #[derive(Debug, Deserialize)]
@@ -55,6 +64,7 @@ pub struct HookPayload {
     pub zellij_session: Option<String>,
     pub term_program: Option<String>,
     pub ts_ms: Option<u64>,
+    pub source: Option<String>,
 }
 
 pub struct ClickRegion {
@@ -166,4 +176,5 @@ pub struct State {
     pub menu_click_regions: Vec<MenuClickRegion>,
     pub config_loaded: bool,
     pub hooks_installed: bool,
+    pub codex_hooks_installed: bool,
 }
