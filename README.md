@@ -1,6 +1,6 @@
 # Zellaude
 
-A Zellij status bar plugin that replaces the default tab bar with Claude Code activity awareness.
+A Zellij status bar plugin that replaces the default tab bar with Claude Code and Codex activity awareness.
 
 ![Zellaude status bar example](assets/bar-example.svg)
 
@@ -8,7 +8,8 @@ A Zellij status bar plugin that replaces the default tab bar with Claude Code ac
 
 - **Full tab bar** — shows all Zellij tabs (not just Claude sessions), replacing the native tab bar
 - **Session & mode display** — shows the Zellij session name and current input mode (NORMAL, LOCKED, PANE, etc.) with color-coded indicators
-- **Live activity indicators** — see what every Claude Code session is doing at a glance; non-Claude tabs shown dimly
+- **Live activity indicators** — see what every Claude Code / Codex session is doing at a glance; untracked tabs shown dimly
+- **Pane source fallback** — infers Claude/Codex panes from runtime pane metadata, so panes stay tracked even before the first hook event arrives
 - **Clickable tabs** — click any tab to switch to it
 - **Smart pane focus** — clicking a waiting (⚠) session focuses the exact pane so you can respond to the permission prompt immediately
 - **Permission flash** — sessions pulse bright yellow for 2 seconds when a permission request arrives
@@ -42,6 +43,8 @@ Click the **Zellaude** prefix on the left side of the bar to open the settings m
 | Notifications | Always / Unfocused / Off | Always | Desktop notifications on permission requests. "Unfocused" only notifies when the requesting pane is on a different tab. |
 | Flash | Persist / Brief / Off | Brief | Yellow flash on permission requests. "Persist" keeps flashing until resolved, "Brief" flashes for 2 seconds. |
 | Elapsed time | On / Off | On | Show time since last activity (appears after 30s). |
+| Mode indicator | On / Off | On | Show current Zellij input mode in the prefix (NORMAL, LOCKED, PANE, etc.). |
+| CWD | On / Off | On | Show the active session's current working directory (folder name) in each tracked tab. |
 
 ## Install
 

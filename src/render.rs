@@ -13,6 +13,8 @@ struct Style {
     b: u8,
 }
 
+const CODEX_MARK: &str = "◎";
+
 fn activity_priority(activity: &Activity) -> u8 {
     match activity {
         Activity::Waiting => 8,
@@ -29,49 +31,139 @@ fn activity_priority(activity: &Activity) -> u8 {
 
 fn tool_symbol(name: &str) -> &'static str {
     match name {
-        "Bash" | "shell"           => "⚡",
-        "Read" | "Glob" | "Grep"   => "◉",
-        "Edit" | "Write"           => "✎",
-        "Task"                     => "⊜",
-        "WebSearch" | "WebFetch"   => "◈",
-        _                          => "⚙",
+        "Bash" | "shell" => "⚡",
+        "Read" | "Glob" | "Grep" => "◉",
+        "Edit" | "Write" => "✎",
+        "Task" => "⊜",
+        "WebSearch" | "WebFetch" => "◈",
+        _ => "⚙",
     }
 }
 
 // Claude: warm orange/amber palette — brand color ~(210, 105, 58)
 fn activity_style_claude(activity: &Activity) -> Style {
     match activity {
-        Activity::Init         => Style { symbol: "◆", r: 175, g: 165, b: 155 },
-        Activity::Thinking     => Style { symbol: "●", r: 215, g: 145, b: 95  },
-        Activity::Tool(name)   => Style { symbol: tool_symbol(name), r: 240, g: 150, b: 60  },
-        Activity::Prompting    => Style { symbol: "▶", r: 100, g: 210, b: 140 },
-        Activity::Waiting      => Style { symbol: "⚠", r: 255, g: 60,  b: 60  },
-        Activity::Notification => Style { symbol: "◇", r: 220, g: 180, b: 110 },
-        Activity::Done         => Style { symbol: "✓", r: 100, g: 210, b: 140 },
-        Activity::AgentDone    => Style { symbol: "✓", r: 80,  g: 195, b: 120 },
-        Activity::Idle         => Style { symbol: "○", r: 175, g: 165, b: 155 },
+        Activity::Init => Style {
+            symbol: "◆",
+            r: 175,
+            g: 165,
+            b: 155,
+        },
+        Activity::Thinking => Style {
+            symbol: "●",
+            r: 215,
+            g: 145,
+            b: 95,
+        },
+        Activity::Tool(name) => Style {
+            symbol: tool_symbol(name),
+            r: 240,
+            g: 150,
+            b: 60,
+        },
+        Activity::Prompting => Style {
+            symbol: "▶",
+            r: 100,
+            g: 210,
+            b: 140,
+        },
+        Activity::Waiting => Style {
+            symbol: "⚠",
+            r: 255,
+            g: 60,
+            b: 60,
+        },
+        Activity::Notification => Style {
+            symbol: "◇",
+            r: 220,
+            g: 180,
+            b: 110,
+        },
+        Activity::Done => Style {
+            symbol: "✓",
+            r: 100,
+            g: 210,
+            b: 140,
+        },
+        Activity::AgentDone => Style {
+            symbol: "✓",
+            r: 80,
+            g: 195,
+            b: 120,
+        },
+        Activity::Idle => Style {
+            symbol: "○",
+            r: 175,
+            g: 165,
+            b: 155,
+        },
     }
 }
 
 // Codex / OpenAI: teal-green palette — brand color #10A37F = (16, 163, 127)
 fn activity_style_codex(activity: &Activity) -> Style {
     match activity {
-        Activity::Init         => Style { symbol: "◆", r: 155, g: 175, b: 170 },
-        Activity::Thinking     => Style { symbol: "●", r: 60,  g: 175, b: 158 },
-        Activity::Tool(name)   => Style { symbol: tool_symbol(name), r: 50,  g: 195, b: 168 },
-        Activity::Prompting    => Style { symbol: "▶", r: 16,  g: 163, b: 127 },
-        Activity::Waiting      => Style { symbol: "⚠", r: 255, g: 60,  b: 60  },
-        Activity::Notification => Style { symbol: "◇", r: 100, g: 200, b: 180 },
-        Activity::Done         => Style { symbol: "✓", r: 16,  g: 163, b: 127 },
-        Activity::AgentDone    => Style { symbol: "✓", r: 20,  g: 150, b: 118 },
-        Activity::Idle         => Style { symbol: "○", r: 155, g: 175, b: 170 },
+        Activity::Init => Style {
+            symbol: CODEX_MARK,
+            r: 155,
+            g: 175,
+            b: 170,
+        },
+        Activity::Thinking => Style {
+            symbol: "●",
+            r: 60,
+            g: 175,
+            b: 158,
+        },
+        Activity::Tool(name) => Style {
+            symbol: tool_symbol(name),
+            r: 50,
+            g: 195,
+            b: 168,
+        },
+        Activity::Prompting => Style {
+            symbol: "▶",
+            r: 16,
+            g: 163,
+            b: 127,
+        },
+        Activity::Waiting => Style {
+            symbol: "⚠",
+            r: 255,
+            g: 60,
+            b: 60,
+        },
+        Activity::Notification => Style {
+            symbol: "◇",
+            r: 100,
+            g: 200,
+            b: 180,
+        },
+        Activity::Done => Style {
+            symbol: CODEX_MARK,
+            r: 16,
+            g: 163,
+            b: 127,
+        },
+        Activity::AgentDone => Style {
+            symbol: CODEX_MARK,
+            r: 20,
+            g: 150,
+            b: 118,
+        },
+        Activity::Idle => Style {
+            symbol: CODEX_MARK,
+            r: 155,
+            g: 175,
+            b: 170,
+        },
     }
 }
 
 fn activity_style(activity: &Activity, source: AgentSource) -> Style {
     match source {
         AgentSource::Claude => activity_style_claude(activity),
-        AgentSource::Codex  => activity_style_codex(activity),
+        AgentSource::Codex => activity_style_codex(activity),
     }
 }
 
@@ -118,6 +210,33 @@ fn format_elapsed(secs: u64) -> String {
         format!("{}m", secs / 60)
     } else {
         format!("{}h", secs / 3600)
+    }
+}
+
+fn format_cwd_label(cwd: Option<&str>) -> Option<String> {
+    let cwd = cwd?.trim();
+    if cwd.is_empty() {
+        return None;
+    }
+
+    let leaf = if cwd == "/" {
+        "/"
+    } else {
+        let trimmed = cwd.trim_end_matches('/');
+        if trimmed.is_empty() {
+            "/"
+        } else {
+            trimmed.rsplit('/').next().unwrap_or(trimmed)
+        }
+    };
+
+    let max_len = 14;
+    let char_count = leaf.chars().count();
+    if char_count > max_len {
+        let short: String = leaf.chars().take(max_len.saturating_sub(1)).collect();
+        Some(format!("{short}…"))
+    } else {
+        Some(leaf.to_string())
     }
 }
 
@@ -175,7 +294,11 @@ pub fn render_status_bar(state: &mut State, _rows: usize, cols: usize) {
     };
     let prefix_text = format!(" Zellaude{session_part} ");
     let prefix_width = display_width(&prefix_text);
-    let mode_pill_width = if show_mode { 1 + mode_text.len() + 1 } else { 0 };
+    let mode_pill_width = if show_mode {
+        1 + mode_text.len() + 1
+    } else {
+        0
+    };
     let total_prefix_width = prefix_width + mode_pill_width;
 
     // Render prefix segment (truncate if wider than cols)
@@ -219,7 +342,11 @@ pub fn render_status_bar(state: &mut State, _rows: usize, cols: usize) {
     }
     state.prefix_click_region = Some((0, col));
 
-    let last_prefix_bg = if show_mode && total_prefix_width <= cols { mode_bg } else { prefix_bg };
+    let last_prefix_bg = if show_mode && total_prefix_width <= cols {
+        mode_bg
+    } else {
+        prefix_bg
+    };
     let prefix_used = col;
 
     if col < cols {
@@ -270,35 +397,44 @@ fn render_tabs(
     let tab_sessions: Vec<(Option<&SessionInfo>, Option<&SessionInfo>)> = tabs
         .iter()
         .map(|tab| {
-            let best_claude = state.sessions.values()
+            let best_claude = state
+                .sessions
+                .values()
                 .filter(|s| s.tab_index == Some(tab.position) && s.source == AgentSource::Claude)
                 .max_by_key(|s| activity_priority(&s.activity));
-            let best_codex = state.sessions.values()
+            let best_codex = state
+                .sessions
+                .values()
                 .filter(|s| s.tab_index == Some(tab.position) && s.source == AgentSource::Codex)
                 .max_by_key(|s| activity_priority(&s.activity));
             (best_claude, best_codex)
         })
         .collect();
 
-    // Elapsed: use the highest-priority session across both sources
-    let elapsed_strs: Vec<Option<String>> = tab_sessions
+    // Winning session per tab across both sources
+    let winning_sessions: Vec<Option<&SessionInfo>> = tab_sessions
         .iter()
-        .map(|(claude, codex)| {
+        .map(|(claude, codex)| match (claude, codex) {
+            (Some(c), Some(x)) => {
+                if activity_priority(&c.activity) >= activity_priority(&x.activity) {
+                    Some(*c)
+                } else {
+                    Some(*x)
+                }
+            }
+            (Some(c), None) => Some(*c),
+            (None, Some(x)) => Some(*x),
+            (None, None) => None,
+        })
+        .collect();
+
+    // Elapsed: use the winning session
+    let elapsed_strs: Vec<Option<String>> = winning_sessions
+        .iter()
+        .map(|best| {
             if !state.settings.elapsed_time {
                 return None;
             }
-            let best = match (claude, codex) {
-                (Some(c), Some(x)) => {
-                    if activity_priority(&c.activity) >= activity_priority(&x.activity) {
-                        Some(*c)
-                    } else {
-                        Some(*x)
-                    }
-                }
-                (Some(c), None) => Some(*c),
-                (None, Some(x)) => Some(*x),
-                (None, None) => None,
-            };
             best.and_then(|s| {
                 let elapsed = now_s.saturating_sub(s.last_event_ts);
                 if elapsed >= ELAPSED_THRESHOLD {
@@ -310,10 +446,24 @@ fn render_tabs(
         })
         .collect();
 
+    let cwd_strs: Vec<Option<String>> = winning_sessions
+        .iter()
+        .map(|best| {
+            if !state.settings.cwd {
+                return None;
+            }
+            best.and_then(|s| format_cwd_label(s.cwd.as_deref()))
+        })
+        .collect();
+
     // Overhead: 2 base (leading + trailing) + 2 per tracked symbol (symbol + space-or-gap)
     let total_elapsed_width: usize = elapsed_strs
         .iter()
         .map(|e| e.as_ref().map_or(0, |s| s.len() + 1))
+        .sum();
+    let total_cwd_width: usize = cwd_strs
+        .iter()
+        .map(|c| c.as_ref().map_or(0, |s| display_width(s) + 1))
         .sum();
     let per_tab_overhead: usize = tab_sessions
         .iter()
@@ -322,7 +472,8 @@ fn render_tabs(
             2 + n * 2
         })
         .sum();
-    let overhead = prefix_width + 2 * count + per_tab_overhead + total_elapsed_width;
+    let overhead =
+        prefix_width + 2 * count + per_tab_overhead + total_elapsed_width + total_cwd_width;
     let max_name_len = if overhead < cols {
         ((cols - overhead) / count).min(20)
     } else {
@@ -345,25 +496,35 @@ fn render_tabs(
         let truncated = if max_name_len == 0 {
             String::new()
         } else if char_count > max_name_len {
-            let s: String = tab_name.chars().take(max_name_len.saturating_sub(1)).collect();
+            let s: String = tab_name
+                .chars()
+                .take(max_name_len.saturating_sub(1))
+                .collect();
             format!("{s}…")
         } else {
             tab_name.to_string()
         };
 
-        let is_flash_bright = state.sessions.values()
+        let is_flash_bright = state
+            .sessions
+            .values()
             .filter(|s| s.tab_index == Some(tab.position))
             .any(|s| {
-                state.flash_deadlines
+                state
+                    .flash_deadlines
                     .get(&s.pane_id)
                     .map(|&deadline| now_ms < deadline && (now_ms / 250) % 2 == 0)
                     .unwrap_or(false)
             });
 
         let is_active = tab.active;
-        let tab_bg = if is_flash_bright { FLASH_BG_BRIGHT }
-                     else if is_active  { TAB_BG_ACTIVE }
-                     else               { TAB_BG_INACTIVE };
+        let tab_bg = if is_flash_bright {
+            FLASH_BG_BRIGHT
+        } else if is_active {
+            TAB_BG_ACTIVE
+        } else {
+            TAB_BG_INACTIVE
+        };
 
         if prev_bg == prefix_bg {
             arrow(buf, col, prev_bg, tab_bg);
@@ -377,13 +538,9 @@ fn render_tabs(
 
         if is_tracked {
             // Winning session determines name styling
-            let winning = match (claude_session, codex_session) {
-                (Some(c), Some(x)) => {
-                    if activity_priority(&c.activity) >= activity_priority(&x.activity) { c } else { x }
-                }
-                (Some(c), None) => c,
-                (None, Some(x)) => x,
-                (None, None) => unreachable!(),
+            let winning = match winning_sessions[i] {
+                Some(session) => session,
+                None => unreachable!(),
             };
 
             let (name_fg, name_bold) = if is_flash_bright {
@@ -393,7 +550,7 @@ fn render_tabs(
             } else {
                 let inactive = match winning.source {
                     AgentSource::Claude => fg(235, 195, 165), // warm amber
-                    AgentSource::Codex  => fg(120, 205, 195), // cool teal
+                    AgentSource::Codex => fg(120, 205, 195),  // cool teal
                 };
                 (inactive, false)
             };
@@ -405,7 +562,11 @@ fn render_tabs(
             // Claude symbol
             if let Some(s) = claude_session {
                 let style = activity_style(&s.activity, AgentSource::Claude);
-                let sym_fg = if is_flash_bright { fg(255, 255, 80) } else { fg(style.r, style.g, style.b) };
+                let sym_fg = if is_flash_bright {
+                    fg(255, 255, 80)
+                } else {
+                    fg(style.r, style.g, style.b)
+                };
                 let _ = write!(buf, "{sym_fg}{}", style.symbol);
                 *col += display_width(style.symbol);
             }
@@ -419,7 +580,11 @@ fn render_tabs(
             // Codex symbol
             if let Some(s) = codex_session {
                 let style = activity_style(&s.activity, AgentSource::Codex);
-                let sym_fg = if is_flash_bright { fg(255, 255, 80) } else { fg(style.r, style.g, style.b) };
+                let sym_fg = if is_flash_bright {
+                    fg(255, 255, 80)
+                } else {
+                    fg(style.r, style.g, style.b)
+                };
                 let _ = write!(buf, "{sym_fg}{}", style.symbol);
                 *col += display_width(style.symbol);
             }
@@ -429,6 +594,14 @@ fn render_tabs(
                 let bold_str = if name_bold { BOLD } else { "" };
                 let _ = write!(buf, " {bold_str}{name_fg}{truncated}{RESET}{tab_bg_str}");
                 *col += 1 + display_width(&truncated);
+            }
+
+            if let Some(ref cwd) = cwd_strs[i] {
+                let cwd_width = display_width(cwd);
+                if *col + 1 + cwd_width + 1 < cols {
+                    let _ = write!(buf, " {}{cwd}", fg(145, 145, 165));
+                    *col += 1 + cwd_width;
+                }
             }
 
             // Elapsed
@@ -449,7 +622,9 @@ fn render_tabs(
             let _ = write!(buf, " ");
             *col += 1;
 
-            let waiting_session = state.sessions.values()
+            let waiting_session = state
+                .sessions
+                .values()
                 .filter(|s| s.tab_index == Some(tab.position))
                 .find(|s| matches!(s.activity, Activity::Waiting));
 
@@ -462,7 +637,11 @@ fn render_tabs(
             });
         } else {
             // Untracked tab — no symbol, dimmer name
-            let name_fg   = if is_active { fg(220, 215, 230) } else { fg(170, 165, 185) };
+            let name_fg = if is_active {
+                fg(220, 215, 230)
+            } else {
+                fg(170, 165, 185)
+            };
             let name_bold = is_active;
 
             let _ = write!(buf, "{tab_bg_str} ");
@@ -550,8 +729,14 @@ fn render_settings_menu(state: &mut State, buf: &mut String, col: &mut usize) {
         let (symbol, label, sym_color, label_color) =
             notify_mode_label(state.settings.notifications);
         render_tristate(
-            buf, col, &mut state.menu_click_regions,
-            SettingKey::Notifications, symbol, label, &sym_color, &label_color,
+            buf,
+            col,
+            &mut state.menu_click_regions,
+            SettingKey::Notifications,
+            symbol,
+            label,
+            &sym_color,
+            &label_color,
         );
     }
 
@@ -559,11 +744,16 @@ fn render_settings_menu(state: &mut State, buf: &mut String, col: &mut usize) {
     {
         let _ = write!(buf, "  ");
         *col += 2;
-        let (symbol, label, sym_color, label_color) =
-            flash_mode_label(state.settings.flash);
+        let (symbol, label, sym_color, label_color) = flash_mode_label(state.settings.flash);
         render_tristate(
-            buf, col, &mut state.menu_click_regions,
-            SettingKey::Flash, symbol, label, &sym_color, &label_color,
+            buf,
+            col,
+            &mut state.menu_click_regions,
+            SettingKey::Flash,
+            symbol,
+            label,
+            &sym_color,
+            &label_color,
         );
     }
 
@@ -577,10 +767,20 @@ fn render_settings_menu(state: &mut State, buf: &mut String, col: &mut usize) {
         } else {
             ("○", fg(100, 100, 100), fg(100, 100, 100))
         };
-        let label = if enabled { "Elapsed time: on" } else { "Elapsed time: off" };
+        let label = if enabled {
+            "Elapsed time: on"
+        } else {
+            "Elapsed time: off"
+        };
         render_tristate(
-            buf, col, &mut state.menu_click_regions,
-            SettingKey::ElapsedTime, symbol, label, &sym_color, &label_color,
+            buf,
+            col,
+            &mut state.menu_click_regions,
+            SettingKey::ElapsedTime,
+            symbol,
+            label,
+            &sym_color,
+            &label_color,
         );
     }
 
@@ -594,10 +794,43 @@ fn render_settings_menu(state: &mut State, buf: &mut String, col: &mut usize) {
         } else {
             ("○", fg(100, 100, 100), fg(100, 100, 100))
         };
-        let label = if enabled { "Mode indicator: on" } else { "Mode indicator: off" };
+        let label = if enabled {
+            "Mode indicator: on"
+        } else {
+            "Mode indicator: off"
+        };
         render_tristate(
-            buf, col, &mut state.menu_click_regions,
-            SettingKey::ModeIndicator, symbol, label, &sym_color, &label_color,
+            buf,
+            col,
+            &mut state.menu_click_regions,
+            SettingKey::ModeIndicator,
+            symbol,
+            label,
+            &sym_color,
+            &label_color,
+        );
+    }
+
+    // --- CWD (bool) ---
+    {
+        let _ = write!(buf, "  ");
+        *col += 2;
+        let enabled = state.settings.cwd;
+        let (symbol, sym_color, label_color) = if enabled {
+            ("●", fg(80, 200, 120), fg(255, 255, 255))
+        } else {
+            ("○", fg(100, 100, 100), fg(100, 100, 100))
+        };
+        let label = if enabled { "CWD: on" } else { "CWD: off" };
+        render_tristate(
+            buf,
+            col,
+            &mut state.menu_click_regions,
+            SettingKey::Cwd,
+            symbol,
+            label,
+            &sym_color,
+            &label_color,
         );
     }
 
