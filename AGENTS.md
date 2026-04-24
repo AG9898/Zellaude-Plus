@@ -8,104 +8,132 @@ Treat it as a fast-moving customization workspace, not a long-lived product with
 - Primary goal: add or tweak behavior quickly for local workflow needs.
 - Secondary goal: keep changes clean enough to upstream or compare against the base fork later.
 
-## Project Shape
+## Overview
 
-- Rust Zellij plugin source:
-  - `src/main.rs` - plugin event loop, settings load/save, click handling
-  - `src/render.rs` - status bar rendering and settings menu UI
-  - `src/state.rs` - core state structs, enums, persisted settings
-  - `src/event_handler.rs` - hook payload -> activity/session state transitions
-  - `src/installer.rs` - hook installation logic
-- Hook bridge scripts:
-  - `scripts/zellaude-hook.sh` (Claude hooks -> `zellij pipe`)
-  - `scripts/zellaude-codex-hook.sh` (Codex hooks -> `zellij pipe`)
-- Install helpers:
-  - `install.sh`
-  - `scripts/install-hooks.sh`
-  - `scripts/install-codex-hooks.sh`
-- Example layout for repo-local testing:
-  - `layout.kdl`
+This repository builds a Rust Zellij plugin (`zellaude.wasm`) plus terminal hook scripts that send activity payloads through `zellij pipe`.
+Most work here is plugin behavior, rendering, settings toggles, and local runtime wiring.
+AGENTS is the concise working guide; detailed operational references live under `docs/`.
 
-## Runtime Paths You Must Remember
+## Quick Start
 
-Most behavior issues are in the runtime files under `~/.config`, not only this repo.
+```bash
+# Build wasm plugin
+cargo build --release --target wasm32-wasip1
 
-- Active plugin binary:
-  - `~/.config/zellij/plugins/zellaude.wasm`
-- Persisted plugin settings:
-  - `~/.config/zellij/plugins/zellaude.json`
-- Installed hook scripts used at runtime:
-  - `~/.config/zellij/plugins/zellaude-hook.sh`
-  - `~/.config/zellij/plugins/zellaude-codex-hook.sh`
-- Zellij config/layouts:
-  - `~/.config/zellij/config.kdl`
-  - `~/.config/zellij/layouts/default.kdl`
+# Install runtime wasm used by Zellij
+cp target/wasm32-wasip1/release/zellaude.wasm ~/.config/zellij/plugins/zellaude.wasm
 
-If code changes are not visible, verify the loaded layout/plugin path with:
-- `zellij -s <session> action dump-layout`
+# Reload plugin in a running session
+zellij -s <session> action start-or-reload-plugin file:~/.config/zellij/plugins/zellaude.wasm
 
-## Build / Deploy / Reload Loop
+# Fast style check
+cargo fmt --check
+```
 
-From repo root:
+## Build & Verification Commands
 
-1. Build:
-   - `cargo build --release --target wasm32-wasip1`
-2. Install wasm:
-   - `cp target/wasm32-wasip1/release/zellaude.wasm ~/.config/zellij/plugins/zellaude.wasm`
-3. Reload running session plugin:
-   - `zellij -s <session> action start-or-reload-plugin file:~/.config/zellij/plugins/zellaude.wasm`
-4. Optional format/check:
-   - `cargo fmt --check`
+| Command | What it checks | Speed |
+|---|---|---|
+| `cargo fmt --check` | Rust formatting compliance | fast |
+| `cargo build --release --target wasm32-wasip1` | Compiles the shipped plugin artifact | fast |
+| `cargo test` | Rust tests (if present) | slow |
 
-## Code Patterns To Follow
+## Repository Structure
 
-- Keep state shape simple in `state.rs` and derive serde for persisted settings.
-- When adding a new setting, wire all of these together:
-  1. `Settings` struct + default in `state.rs`
-  2. `SettingKey` enum in `state.rs`
-  3. Toggle handling in `main.rs` click handler
-  4. UI control in `render_settings_menu()` in `render.rs`
-  5. Any render logic gated by the setting in `render.rs`
-- Avoid introducing new background processes from plugin code; use existing hook/pipe model.
-- Prefer extending existing activity and tab-selection logic instead of parallel logic paths.
+```text
+src/                    Rust plugin source
+  main.rs               Event loop, settings load/save, click + pipe handling
+  render.rs             Status bar rendering + settings menu UI
+  state.rs              Core state enums/structs + persisted settings
+  event_handler.rs      Hook payload -> activity/session state transitions
+  installer.rs          Hook installation logic
+scripts/                Hook bridge + install helper scripts
+layout.kdl              Example local layout
+install.sh              Local install helper
+docs/                   Project documentation
+  index.md              Documentation navigation map
+  runtime-reference.md  Runtime paths, reload loop, customization snapshot
+  architecture.md       Topology and runtime boundaries
+  conventions.md        Coding conventions and patterns
+  testing.md            Test guidance and commands
+  decisions.md          Open/resolved architectural decisions
+```
 
-## Behavior Notes That Commonly Matter
+Docs navigation: [`docs/index.md`](docs/index.md)
 
-- Plugin UI is event-driven by Zellij events + hook payloads sent via `zellij pipe`.
-- Some fields (like `cwd`) only appear after relevant hook events arrive.
-- If behavior seems stale, validate:
-  - correct plugin path loaded in active session
-  - runtime settings JSON content
-  - hook registration files in `~/.claude/settings.json` and `~/.codex/hooks.json`
+## Architecture Constraints
+
+- Plugin UI is event-driven by Zellij events and hook payloads sent via `zellij pipe`.
+- Do not introduce new background processes from plugin code; use the hook/pipe model.
+- Extend existing activity and tab-selection logic instead of creating parallel logic paths.
+- When adding a new setting, wire all required touchpoints (`state.rs`, `main.rs`, `render.rs`).
+- Runtime behavior depends on `~/.config/zellij/...` files as much as repo code.
+
+Full details: [`docs/runtime-reference.md`](docs/runtime-reference.md) and [`docs/architecture.md`](docs/architecture.md)
+
+## Code Style & Constraints
+
+### Never
+
+- Never commit secrets or credentials.
+- Never use destructive git commands to revert unrelated user changes.
+- Never bypass the existing hook/pipe pathway for activity updates.
+
+### Always
+
+- Always keep changes focused and reversible.
+- Always prefer small local modifications over broad refactors.
+- Always run fast verification commands before marking work done.
+- Always update relevant docs in the same change when behavior or constraints move.
+- Always append a brief entry to `changed_work` for completed changes.
+
+### Patterns
+
+- Keep persisted settings shape simple in `state.rs` with serde derives.
+- Gate new render behavior behind explicit settings where appropriate.
+- Keep implementation details in docs; keep AGENTS concise and directive.
+
+Conventions detail: [`docs/conventions.md`](docs/conventions.md)
 
 ## Scope Guidance For Future Agents
 
-- Keep changes focused and reversible.
-- Prefer small, local modifications over broad refactors.
 - Update `README.md` only when user-facing behavior changes.
-- If adding one-off local behavior for this clone, document it briefly here.
-- For every completed change, add a brief entry to `changed_work`.
+- Keep AGENTS concise; move detailed runtime/operational reference content into `docs/`.
+- If adding one-off local behavior for this clone, document it briefly in `changed_work` and expand details in docs as needed.
 
-## Current Local Customizations
+## Maintaining Docs
 
-Snapshot of local behavior currently layered on this clone:
+Docs must stay current with code. Update the relevant doc in the same commit as the change.
 
-- Zellij runtime is configured to use the local layout file path:
-  - `~/.config/zellij/config.kdl` -> `default_layout "/home/ag9898/.config/zellij/layouts/default.kdl"`
-- Custom layout at `~/.config/zellij/layouts/default.kdl` includes:
-  - top `zellaude` plugin pane
-  - bottom `zellij:status-bar` pane
-  - custom `swap_tiled_layout` entries for `vertical` and `horizontal`
-- Plugin settings/features added in this clone:
-  - `mode_indicator` setting is present and enabled by default
-  - `cwd` setting is present and enabled by default
-  - tracked tabs can render CWD leaf text (eg `zellaude`) next to tab activity/name
-- Runtime persisted settings file used by plugin:
+| What changed | Doc to update |
+|---|---|
+| Runtime paths, reload loop, local customization details | [`docs/runtime-reference.md`](docs/runtime-reference.md) |
+| System topology or component boundaries | [`docs/architecture.md`](docs/architecture.md) |
+| Coding pattern, naming rule, or hard constraints | [`docs/conventions.md`](docs/conventions.md) |
+| Test commands/patterns/coverage expectations | [`docs/testing.md`](docs/testing.md) |
+| Architectural question or decision | [`docs/decisions.md`](docs/decisions.md) |
+| Any docs add/remove/rename/move | [`docs/index.md`](docs/index.md) |
+
+## Debugging & Gotchas
+
+- If code changes are not visible, confirm active layout/plugin path with:
+  - `zellij -s <session> action dump-layout`
+- Verify runtime files when behavior seems stale:
+  - `~/.config/zellij/plugins/zellaude.wasm`
   - `~/.config/zellij/plugins/zellaude.json`
-  - expected keys include: `notifications`, `flash`, `elapsed_time`, `mode_indicator`, `cwd`
+  - `~/.config/zellij/plugins/zellaude-hook.sh`
+  - `~/.config/zellij/plugins/zellaude-codex-hook.sh`
+- `cwd` labels appear only after relevant hook events arrive.
+- Zellij pipe names with colons do not work via CLI; use hyphenated names (for example `zellaude-buddy`).
+
+## Deployment
+
+This repo is local-runtime oriented. Do not publish/release/deploy externally unless explicitly requested.
 
 ## changed_work
 
+- 2026-04-24: Integrated major sections from `~/projects/ag.dev/AGENTS_EX.md` into this repo's `AGENTS.md` (quick start, verification commands, repo structure, architecture constraints, doc maintenance map, and debugging gotchas), adapted for Rust + terminal/Zellij workflow.
+- 2026-04-24: Created `docs/` scaffolding from the `~/projects/ag.dev/docs` template (trimmed for this Rust/Zellij plugin repo), moved runtime/operational reference content out of `AGENTS.md` into `docs/runtime-reference.md`, and added `docs/index.md` as the canonical documentation map.
 - 2026-04-24: Updated `src/render.rs` to switch the bar from sharp powerline ribbons to rounded pill segments (``/``) and remapped status/prefix colors to match the active `dark-plus-burgundy` Zellij theme. Add-on: adjusted the top mode/status pill text to use a high-contrast foreground (instead of gray-leaning text) so it reads clearly against red modes. Add-on: increased contrast for tracked tab CWD/elapsed labels and brightened Codex symbol/name colors so repo labels (eg `zellaude-plus-...`) no longer render as low-contrast gray on burgundy pills.
 - 2026-04-24: Restored the built-in bottom Zellij status bar by adding a `zellij:status-bar` pane to `layout.kdl` (while keeping the top Zellaude plugin pane).
 - 2026-04-24: Added ASCII buddy character to the far right of the status bar (inspired by Claude Code's /buddy feature). The buddy occupies 9 columns (1 space + 8-char expression: 5-char face + 3-char accessory zone). Two styles available — kaomoji `(*_*)`, `(o_o)`, `(>_<)`, `(TwT)`, etc. and cat `=^*^=`, `=^o^=`, `=ToT=`, etc. — each with animated accessories: thinking dots grow left-to-right and waiting exclamations escalate at 250ms/frame. Idle states blink once every 4 seconds. Controlled by a tri-state `BuddyStyle` enum (`Off/Kaomoji/Cat`, default `Off`). Toggle via settings menu click (`○ Buddy: off` / `● Buddy: kaomoji` / `◐ Buddy: cat`) or from any terminal with:
