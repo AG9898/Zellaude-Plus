@@ -119,6 +119,10 @@ impl ZellijPlugin for State {
                                             state::SettingKey::Cwd => {
                                                 self.settings.cwd = !self.settings.cwd;
                                             }
+                                            state::SettingKey::Buddy => {
+                                                self.settings.buddy_style =
+                                                    self.settings.buddy_style.cycle();
+                                            }
                                         }
                                         self.save_config();
                                     }
@@ -159,7 +163,8 @@ impl ZellijPlugin for State {
                 let stale_changed = self.cleanup_stale_sessions();
                 let flash_changed = self.cleanup_expired_flashes();
                 let has_flashes = self.has_active_flashes();
-                if has_flashes {
+                let needs_anim = self.needs_buddy_animation();
+                if has_flashes || needs_anim {
                     set_timeout(FLASH_TICK);
                 } else {
                     set_timeout(TIMER_INTERVAL);
@@ -169,6 +174,7 @@ impl ZellijPlugin for State {
                     || stale_changed
                     || flash_changed
                     || self.has_elapsed_display()
+                    || needs_anim
             }
             Event::PermissionRequestResult(status) => {
                 // Keep the pane visible during fullscreen regardless of status.
@@ -216,6 +222,22 @@ impl ZellijPlugin for State {
                     }
                 }
                 false
+            }
+            "zellaude-buddy" => {
+                // Terminal command — set or cycle buddy style and persist
+                // Payload: "off" | "kaomoji" | "cat" | "" (cycle)
+                self.settings.buddy_style = match pipe_message
+                    .payload
+                    .as_deref()
+                    .map(str::trim)
+                {
+                    Some("off")     => state::BuddyStyle::Off,
+                    Some("kaomoji") => state::BuddyStyle::Kaomoji,
+                    Some("cat")     => state::BuddyStyle::Cat,
+                    _               => self.settings.buddy_style.cycle(),
+                };
+                self.save_config();
+                true
             }
             "zellaude:request" => {
                 // Another instance asking for state — respond with ours
@@ -575,6 +597,18 @@ impl State {
             !matches!(s.activity, state::Activity::Idle)
                 && now.saturating_sub(s.last_event_ts) >= DONE_TIMEOUT
         })
+    }
+
+    fn needs_buddy_animation(&self) -> bool {
+        self.settings.buddy_style != state::BuddyStyle::Off
+            && self.sessions.values().any(|s| {
+                matches!(
+                    s.activity,
+                    state::Activity::Thinking
+                        | state::Activity::Waiting
+                        | state::Activity::Idle
+                )
+            })
     }
 
     fn request_sync(&self) {

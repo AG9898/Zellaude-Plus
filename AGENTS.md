@@ -103,3 +103,16 @@ Snapshot of local behavior currently layered on this clone:
 - Runtime persisted settings file used by plugin:
   - `~/.config/zellij/plugins/zellaude.json`
   - expected keys include: `notifications`, `flash`, `elapsed_time`, `mode_indicator`, `cwd`
+
+## changed_work
+
+- 2026-04-24: Updated `src/render.rs` to switch the bar from sharp powerline ribbons to rounded pill segments (``/``) and remapped status/prefix colors to match the active `dark-plus-burgundy` Zellij theme. Add-on: adjusted the top mode/status pill text to use a high-contrast foreground (instead of gray-leaning text) so it reads clearly against red modes. Add-on: increased contrast for tracked tab CWD/elapsed labels and brightened Codex symbol/name colors so repo labels (eg `zellaude-plus-...`) no longer render as low-contrast gray on burgundy pills.
+- 2026-04-24: Restored the built-in bottom Zellij status bar by adding a `zellij:status-bar` pane to `layout.kdl` (while keeping the top Zellaude plugin pane).
+- 2026-04-24: Added ASCII buddy character to the far right of the status bar (inspired by Claude Code's /buddy feature). The buddy occupies 9 columns (1 space + 8-char expression: 5-char face + 3-char accessory zone). Two styles available — kaomoji `(*_*)`, `(o_o)`, `(>_<)`, `(TwT)`, etc. and cat `=^*^=`, `=^o^=`, `=ToT=`, etc. — each with animated accessories: thinking dots grow left-to-right and waiting exclamations escalate at 250ms/frame. Idle states blink once every 4 seconds. Controlled by a tri-state `BuddyStyle` enum (`Off/Kaomoji/Cat`, default `Off`). Toggle via settings menu click (`○ Buddy: off` / `● Buddy: kaomoji` / `◐ Buddy: cat`) or from any terminal with:
+  ```
+  zellij pipe --name zellaude-buddy -- "off"      # disable
+  zellij pipe --name zellaude-buddy -- "kaomoji"  # kaomoji style
+  zellij pipe --name zellaude-buddy -- "cat"      # cat style
+  zellij pipe --name zellaude-buddy -- ""         # cycle to next
+  ```
+  Note: pipe names with colons do not work from the CLI in Zellij — hyphens required. Recommended shell aliases: `alias buddy-cat='zellij pipe --name zellaude-buddy -- "cat"'` etc. Files changed: `src/state.rs` (`BuddyStyle` enum + cycle + `buddy_style` replacing `buddy: bool`), `src/main.rs` (payload-aware pipe handler + `needs_buddy_animation()` + timer extension), `src/render.rs` (`cat_faces()` + updated `render_buddy()` + 3-state settings menu + BuddyStyle import).

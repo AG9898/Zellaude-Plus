@@ -111,6 +111,24 @@ impl FlashMode {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Default)]
+pub enum BuddyStyle {
+    #[default]
+    Off,
+    Kaomoji,
+    Cat,
+}
+
+impl BuddyStyle {
+    pub fn cycle(self) -> Self {
+        match self {
+            Self::Off => Self::Kaomoji,
+            Self::Kaomoji => Self::Cat,
+            Self::Cat => Self::Off,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
@@ -119,6 +137,7 @@ pub struct Settings {
     pub elapsed_time: bool,
     pub mode_indicator: bool,
     pub cwd: bool,
+    pub buddy_style: BuddyStyle,
 }
 
 impl Default for Settings {
@@ -129,6 +148,7 @@ impl Default for Settings {
             elapsed_time: true,
             mode_indicator: true,
             cwd: true,
+            buddy_style: BuddyStyle::Off,
         }
     }
 }
@@ -147,6 +167,7 @@ pub enum SettingKey {
     ElapsedTime,
     ModeIndicator,
     Cwd,
+    Buddy,
 }
 
 pub enum MenuAction {
