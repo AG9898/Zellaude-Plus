@@ -375,7 +375,7 @@ fn cat_faces(activity: &Activity, frame: u8) -> (&'static str, (u8, u8, u8)) {
     }
 }
 
-fn kaomoji_speech(activity: &Activity, frame: u8, slow_var: usize) -> &'static str {
+fn kaomoji_speech(activity: &Activity, frame: u8, speech_var: usize) -> &'static str {
     match activity {
         Activity::Idle => {
             if frame % 8 == 7 {
@@ -384,52 +384,56 @@ fn kaomoji_speech(activity: &Activity, frame: u8, slow_var: usize) -> &'static s
                 let lines = [
                     "just vibing...",
                     "watching u code",
+                    "",
                     "no bugs yet. bold.",
                     "...still here",
+                    "",
                     "coffee depleted",
                     "*stares at code*",
+                    "",
                     "u got this",
                     "try not to break it",
+                    "",
                 ];
-                lines[slow_var % lines.len()]
+                lines[speech_var % lines.len()]
             }
         }
         Activity::Thinking => {
-            let lines = ["hang on...", "crunching...", "this is fine...", "almost!"];
-            lines[frame as usize % lines.len()]
+            let lines = ["hang on...", "", "crunching...", "", "this is fine...", "", "almost!", ""];
+            lines[speech_var % lines.len()]
         }
         Activity::Waiting => {
-            let lines = ["your move...", "hello?", "anytime now...", "HELLO?!"];
-            lines[frame as usize % lines.len()]
+            let lines = ["your move...", "", "hello?", "", "anytime now...", "HELLO?!"];
+            lines[speech_var % lines.len()]
         }
         Activity::Done => {
-            let lines = ["nailed it!", "ez. next?", "was never in doubt", "ship it", "flawless", "clean."];
-            lines[slow_var % lines.len()]
+            let lines = ["nailed it!", "ez. next?", "", "was never in doubt", "ship it", "", "flawless", "clean."];
+            lines[speech_var % lines.len()]
         }
         Activity::Tool(_) => {
-            let lines = ["on it!", "deploying minions", "executing...", "running... trust"];
-            lines[slow_var % lines.len()]
+            let lines = ["on it!", "", "deploying minions", "executing...", "", "running... trust"];
+            lines[speech_var % lines.len()]
         }
         Activity::Init => {
-            let lines = ["loading...", "booting brain...", "systems online", "waking up..."];
-            lines[slow_var % lines.len()]
+            let lines = ["loading...", "booting brain...", "", "systems online", "waking up..."];
+            lines[speech_var % lines.len()]
         }
         Activity::Prompting => {
-            let lines = ["go ahead...", "listening...", "tell me everything", "i'm all ears"];
-            lines[slow_var % lines.len()]
+            let lines = ["go ahead...", "", "listening...", "tell me everything", "", "i'm all ears"];
+            lines[speech_var % lines.len()]
         }
         Activity::Notification => {
-            let lines = ["heads up!", "oh btw...", "fyi.", "pay attention!"];
-            lines[slow_var % lines.len()]
+            let lines = ["heads up!", "oh btw...", "", "fyi.", "pay attention!"];
+            lines[speech_var % lines.len()]
         }
         Activity::AgentDone => {
-            let lines = ["sub returned", "delegation done", "good little agent", "welcome back"];
-            lines[slow_var % lines.len()]
+            let lines = ["sub returned", "", "delegation done", "good little agent", "", "welcome back"];
+            lines[speech_var % lines.len()]
         }
     }
 }
 
-fn cat_speech(activity: &Activity, frame: u8, slow_var: usize) -> &'static str {
+fn cat_speech(activity: &Activity, frame: u8, speech_var: usize) -> &'static str {
     match activity {
         Activity::Idle => {
             if frame % 8 == 7 {
@@ -438,47 +442,51 @@ fn cat_speech(activity: &Activity, frame: u8, slow_var: usize) -> &'static str {
                 let lines = [
                     "purrrrr...",
                     "*slow blinks*",
+                    "",
                     "mrow~",
                     "*nap time*",
+                    "",
                     "zzz... purr",
                     "*stretches*",
+                    "",
                     "*blinks at u*",
                     "*kneads blanket*",
+                    "",
                 ];
-                lines[slow_var % lines.len()]
+                lines[speech_var % lines.len()]
             }
         }
         Activity::Thinking => {
-            let lines = ["mrrrow...", "*paw on chin*", "mew mew mew...", "*pounces idea*"];
-            lines[frame as usize % lines.len()]
+            let lines = ["mrrrow...", "", "*paw on chin*", "", "mew mew mew...", "", "*pounces idea*", ""];
+            lines[speech_var % lines.len()]
         }
         Activity::Waiting => {
-            let lines = ["mrow?", "MROW!", "MEOW!!", "MRRROWWW!!!"];
-            lines[frame as usize % lines.len()]
+            let lines = ["mrow?", "", "MROW!", "", "MEOW!!", "MRRROWWW!!!"];
+            lines[speech_var % lines.len()]
         }
         Activity::Done => {
-            let lines = ["purr purr :3", "*happy trill*", "mrow! nice!", "*head boop*", "prrrfect!", "mrrrow~"];
-            lines[slow_var % lines.len()]
+            let lines = ["purr purr :3", "*happy trill*", "", "mrow! nice!", "*head boop*", "", "prrrfect!", "mrrrow~"];
+            lines[speech_var % lines.len()]
         }
         Activity::Tool(_) => {
-            let lines = ["*chases cursor*", "pounce!!", "*swats bugs*", "mrrrow! on it!"];
-            lines[slow_var % lines.len()]
+            let lines = ["*chases cursor*", "", "pounce!!", "*swats bugs*", "", "mrrrow! on it!"];
+            lines[speech_var % lines.len()]
         }
         Activity::Init => {
-            let lines = ["*yawns loudly*", "mew...", "*stretches paws*", "mrrp?"];
-            lines[slow_var % lines.len()]
+            let lines = ["*yawns loudly*", "mew...", "", "*stretches paws*", "mrrp?"];
+            lines[speech_var % lines.len()]
         }
         Activity::Prompting => {
-            let lines = ["mrow?", "*tilts head*", "*perks ears*", "meow~"];
-            lines[slow_var % lines.len()]
+            let lines = ["mrow?", "", "*tilts head*", "*perks ears*", "", "meow~"];
+            lines[speech_var % lines.len()]
         }
         Activity::Notification => {
-            let lines = ["mrrp!", "*ear twitch*", "meow!", "pspsps!"];
-            lines[slow_var % lines.len()]
+            let lines = ["mrrp!", "*ear twitch*", "", "meow!", "pspsps!"];
+            lines[speech_var % lines.len()]
         }
         Activity::AgentDone => {
-            let lines = ["*kneads paw*", "purr purr...", "good kitty help", "mrrrow :3"];
-            lines[slow_var % lines.len()]
+            let lines = ["*kneads paw*", "", "purr purr...", "good kitty help", "", "mrrrow :3"];
+            lines[speech_var % lines.len()]
         }
     }
 }
@@ -491,7 +499,7 @@ fn render_buddy_speech(state: &State, buf: &mut String, col: &mut usize) {
         Activity::Idle => ((now_ms / 500) % 8) as u8,
         _ => 0,
     };
-    let slow_var = ((now_ms / 15000) % 8) as usize;
+    let speech_var = ((now_ms / 4000) % 16) as usize;
 
     let (_, (r, g, b)) = match state.settings.buddy_style {
         BuddyStyle::Cat => cat_faces(&activity, frame),
@@ -504,8 +512,8 @@ fn render_buddy_speech(state: &State, buf: &mut String, col: &mut usize) {
     );
 
     let text = match state.settings.buddy_style {
-        BuddyStyle::Cat => cat_speech(&activity, frame, slow_var),
-        _               => kaomoji_speech(&activity, frame, slow_var),
+        BuddyStyle::Cat => cat_speech(&activity, frame, speech_var),
+        _               => kaomoji_speech(&activity, frame, speech_var),
     };
 
     let text_len = text.len();
