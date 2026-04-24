@@ -1,20 +1,23 @@
 # Zellaude
 
-A Zellij status bar plugin that replaces the default tab bar with Claude Code and Codex activity awareness.
+A Zellij status bar plugin that replaces the default tab bar with real-time Claude Code and Codex activity awareness. This is an enhanced fork of [ishefi/zellaude](https://github.com/ishefi/zellaude) with additional features described below.
 
-![Zellaude status bar example](assets/bar-example.svg)
+![Zellaude status bar example](assets/Example.png)
 
 ## Features
 
 - **Full tab bar** — shows all Zellij tabs (not just Claude sessions), replacing the native tab bar
-- **Session & mode display** — shows the Zellij session name and current input mode (NORMAL, LOCKED, PANE, etc.) with color-coded indicators
+- **Session & mode display** — shows the Zellij session name and current input mode (NORMAL, LOCKED, PANE, etc.) with color-coded pill indicators
 - **Live activity indicators** — see what every Claude Code / Codex session is doing at a glance; untracked tabs shown dimly
+- **Dual agent support** — tracks both Claude Code and Codex agents independently per pane, with distinct color coding
 - **Pane source fallback** — infers Claude/Codex panes from runtime pane metadata, so panes stay tracked even before the first hook event arrives
 - **Clickable tabs** — click any tab to switch to it
 - **Smart pane focus** — clicking a waiting (⚠) session focuses the exact pane so you can respond to the permission prompt immediately
 - **Permission flash** — sessions pulse bright yellow for 2 seconds when a permission request arrives
-- **Desktop notifications** — macOS notification on permission requests (rate-limited to once per 10s per tab), with click-to-focus support via [terminal-notifier](https://github.com/julienXX/terminal-notifier)
+- **Desktop notifications** — permission request notifications on macOS (via `terminal-notifier` or `osascript`) and Linux (via `notify-send`), rate-limited to once per 10s per tab
 - **Elapsed time** — shows how long a session has been in its current state (after 30s), making it easy to spot stuck sessions
+- **CWD display** — shows the current working directory leaf name inside each tracked tab
+- **Buddy character** — an animated ASCII companion at the right edge of the bar with personality text (see [The Buddy](#the-buddy))
 - **Multi-instance sync** — all Zellij tabs show a unified view of all sessions
 
 ### Activity symbols
@@ -43,8 +46,55 @@ Click the **Zellaude** prefix on the left side of the bar to open the settings m
 | Notifications | Always / Unfocused / Off | Always | Desktop notifications on permission requests. "Unfocused" only notifies when the requesting pane is on a different tab. |
 | Flash | Persist / Brief / Off | Brief | Yellow flash on permission requests. "Persist" keeps flashing until resolved, "Brief" flashes for 2 seconds. |
 | Elapsed time | On / Off | On | Show time since last activity (appears after 30s). |
-| Mode indicator | On / Off | On | Show current Zellij input mode in the prefix (NORMAL, LOCKED, PANE, etc.). |
+| Mode indicator | On / Off | On | Show current Zellij input mode in the prefix pill (NORMAL, LOCKED, PANE, etc.). |
 | CWD | On / Off | On | Show the active session's current working directory (folder name) in each tracked tab. |
+| Buddy | Off / Kaomoji / Cat | Off | Animated ASCII companion at the right edge of the bar. See [The Buddy](#the-buddy). |
+
+## The Buddy
+
+The Buddy is an optional animated ASCII character that lives at the far right of the status bar. It reacts to what your agents are doing in real time, with different faces and a small speech line to the left.
+
+Enable it via the settings menu or via pipe command:
+
+```bash
+zellij pipe --name zellaude-buddy -- "kaomoji"  # or "cat", "off"
+```
+
+### Styles
+
+**Kaomoji** — a sly coding coach. Cheers you on, but not without commentary.
+
+```
+   watching u code  (^-^)
+        crunching.. (*_*)..
+      this is fine. (o_o)...
+       was never in doubt (^v^)
+```
+
+**Cat** — pure cat energy.
+
+```
+      purrrrr... =^.^=
+       mrrrow... =^*^=
+           MEOW!! =ToT=!!
+        purr purr :3 =^v^=
+```
+
+### Activity states
+
+| State | Kaomoji face | Cat face | Description |
+|-------|-------------|----------|-------------|
+| Idle | `(^-^)` / blink `(-_-)` | `=^.^=` / blink `=^-^=` | Ambient — slow blink every 4 seconds |
+| Init | `(?_?)` | `=^o^=` | Session starting up |
+| Thinking | `(*_*)` → `(o_o)...` | `=^*^=` → `=^*^=...` | Animated dots grow as reasoning continues |
+| Tool | `(>v<)` | `=^>=` | Executing a tool |
+| Prompting | `(~_~)` | `=^,^=` | Waiting for your next message |
+| Waiting | `(>_<)` → `(TwT)!!!` | `=ToT=` → `=ToT=!!!` | Permission needed — escalates urgently |
+| Done | `(^v^)` | `=^v^=` | Task complete |
+| Agent done | `(-v-)` | `=^u^=` | Sub-agent returned |
+| Notification | `(oAo)` | `=^!=` | Informational event |
+
+Speech text rotates through variants every ~15 seconds for idle/static states and escalates with each animation frame for Thinking and Waiting.
 
 ## Install
 
@@ -52,35 +102,25 @@ Click the **Zellaude** prefix on the left side of the bar to open the settings m
 
 - [Zellij](https://zellij.dev)
 - [jq](https://jqlang.github.io/jq/) — used by the hook script at runtime
-
-### Quick install
-
-Add the plugin to your Zellij layout — that's it:
-
-```kdl
-default_tab_template {
-    pane size=1 borderless=true {
-        plugin location="https://github.com/ishefi/zellaude/releases/latest/download/zellaude.wasm"
-    }
-    children
-}
-```
-
-On first load, the plugin automatically installs the hook script and registers it with Claude Code. No cloning, no install scripts.
+- [Rust + Cargo](https://rustup.rs) — required to build the WASM plugin
+- `wasm32-wasip1` Rust target — the install script adds this automatically
 
 ### Build from source
 
-Prerequisites: [Rust](https://rustup.rs) (in addition to the above)
-
 ```bash
-git clone https://github.com/ishefi/zellaude.git
-cd zellaude
+git clone https://github.com/AG9898/zelaude-plus-plus.git
+cd zelaude-plus-plus
 ./install.sh
 ```
 
-This builds the WASM plugin and copies it to `~/.config/zellij/plugins/`. Hook registration happens automatically when the plugin loads.
+This will:
+1. Add the `wasm32-wasip1` Rust target if not already installed
+2. Build the WASM plugin in release mode
+3. Copy it to `~/.config/zellij/plugins/zellaude.wasm`
+4. Register Claude Code hooks in `~/.claude/settings.json`
+5. Register Codex hooks in `~/.codex/hooks.json` (if Codex is installed)
 
-Then add the plugin to your Zellij layout (replaces the default tab bar):
+Then add the plugin to your Zellij layout to replace the default tab bar:
 
 ```kdl
 default_tab_template {
@@ -97,15 +137,33 @@ Or try the included layout directly:
 zellij --layout layout.kdl
 ```
 
-### Optional: click-to-focus notifications
+### Codex support
 
-For desktop notifications that focus the right pane when clicked, install [terminal-notifier](https://github.com/julienXX/terminal-notifier):
+Codex hooks are installed automatically by `install.sh` if Codex is present. To install them manually after the fact:
+
+```bash
+./scripts/install-codex-hooks.sh
+```
+
+### Optional: desktop notifications
+
+**macOS** — for click-to-focus support (focuses the right pane when you click the notification), install [terminal-notifier](https://github.com/julienXX/terminal-notifier):
 
 ```bash
 brew install terminal-notifier
 ```
 
-Without it, notifications still appear via osascript but clicking them won't focus the pane.
+Without it, notifications still appear via `osascript` but clicking won't focus the pane.
+
+**Linux** — install `notify-send` (usually part of `libnotify`):
+
+```bash
+# Debian/Ubuntu
+sudo apt install libnotify-bin
+
+# Arch
+sudo pacman -S libnotify
+```
 
 ## Uninstall
 
@@ -113,21 +171,24 @@ Without it, notifications still appear via osascript but clicking them won't foc
 ./install.sh --uninstall
 ```
 
+This removes the plugin from `~/.config/zellij/plugins/` and de-registers all hooks from `~/.claude/settings.json` and `~/.codex/hooks.json`.
+
 ## How it works
 
-Two components:
-
-1. **WASM plugin** — runs inside Zellij, receives events, maintains state in memory, renders the status bar, sends desktop notifications. On first load, writes the hook script to `~/.config/zellij/plugins/zellaude-hook.sh` and registers it in `~/.claude/settings.json`.
-2. **Hook script** — a thin bash bridge that forwards Claude Code hook events to the plugin via `zellij pipe`
+Two components per agent type:
 
 ```
-Claude Code hook → zellaude-hook.sh → zellij pipe → plugin → render
+Claude Code hook → zellaude-hook.sh       → zellij pipe → plugin → render
+Codex hook       → zellaude-codex-hook.sh → zellij pipe → plugin → render
 ```
 
-The hook script and registration are version-tagged and updated automatically when the plugin version changes.
+1. **WASM plugin** — runs inside Zellij, receives events via `zellij pipe`, maintains all session state in memory, renders the status bar on each tick
+2. **Hook scripts** — thin bash bridges that forward hook events (pre-tool, post-tool, permission request, stop, etc.) as JSON payloads to the plugin
 
-All state lives in WASM memory. No temp files, no race conditions. Multiple plugin instances (one per tab) sync state automatically via inter-plugin messaging. Sessions are cleaned up automatically when tabs are closed.
+The plugin determines the dominant activity across all active sessions and renders a unified view across every tab. All state lives in WASM memory — no temp files, no race conditions. Multiple plugin instances (one per Zellij tab) sync state automatically via inter-plugin messaging. Sessions are cleaned up automatically when tabs are closed.
+
+Hook registration is version-tagged: re-running `install.sh` updates hooks in place without duplicating entries.
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE)
