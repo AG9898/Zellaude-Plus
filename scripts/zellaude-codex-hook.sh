@@ -11,10 +11,11 @@
 TS_MS=$(jq -nc 'now * 1000 | floor')
 INPUT=$(cat)
 
-# Codex serializes payload fields as camelCase; fall back to snake_case for compat
-HOOK_EVENT=$(echo "$INPUT" | jq -r '.hookEventName // .hook_event_name // empty')
-SESSION_ID=$(echo "$INPUT" | jq -r '.sessionId // .session_id // empty')
-TOOL_NAME=$(echo "$INPUT" | jq -r '.toolName // .tool_name // empty')
+# Codex currently sends snake_case hook input fields; keep camelCase and a few
+# nested fallbacks so older/newer builds do not silently disappear.
+HOOK_EVENT=$(echo "$INPUT" | jq -r '.hook_event_name // .hookEventName // .event // empty')
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // .sessionId // .thread_id // empty')
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // .toolName // .tool // .name // .tool_call.name // empty')
 CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
 
 [ -z "$HOOK_EVENT" ] && exit 0
@@ -27,6 +28,10 @@ case "$HOOK_EVENT" in
   session_start)      HOOK_EVENT="SessionStart" ;;
   user_prompt_submit) HOOK_EVENT="UserPromptSubmit" ;;
   stop)               HOOK_EVENT="Stop" ;;
+  subagent_stop)      HOOK_EVENT="SubagentStop" ;;
+  session_end)        HOOK_EVENT="SessionEnd" ;;
+  after_tool_use)     HOOK_EVENT="PostToolUse" ;;
+  before_tool_use)    HOOK_EVENT="PreToolUse" ;;
 esac
 
 PAYLOAD=$(jq -nc \
@@ -52,7 +57,9 @@ PAYLOAD=$(jq -nc \
   }')
 
 if [ "$HOOK_EVENT" = "PermissionRequest" ]; then
-  printf '\a' > /dev/tty 2>/dev/null || true
+  if [ -e /dev/tty ]; then
+    (printf '\a' >/dev/tty) 2>/dev/null || true
+  fi
 
   SETTINGS_FILE="$HOME/.config/zellij/plugins/zellaude.json"
   NOTIFY_MODE="Always"
@@ -94,8 +101,8 @@ if [ "$HOOK_EVENT" = "PermissionRequest" ]; then
 
   if [ "$SHOULD_NOTIFY" = true ]; then
     TOOL_SUFFIX=""
-    [ -n "$TOOL_NAME" ] && TOOL_SUFFIX=" — $TOOL_NAME"
-    TITLE="⚠ Codex"
+    [ -n "$TOOL_NAME" ] && TOOL_SUFFIX=" - $TOOL_NAME"
+    TITLE="Codex"
     MESSAGE="Permission requested${TOOL_SUFFIX}"
 
     LOCK="/tmp/zellaude-notify-codex-${ZELLIJ_PANE_ID}"
@@ -127,4 +134,4 @@ if [ "$HOOK_EVENT" = "PermissionRequest" ]; then
   fi
 fi
 
-zellij pipe --name "zellaude" -- "$PAYLOAD"
+zellij pipe --name "zellaude" -- "$PAYLOAD" >/dev/null 2>&1 || true

@@ -6,6 +6,20 @@ use std::fmt::Write;
 use std::io::Write as IoWrite;
 use zellij_tile::prelude::{InputMode, TabInfo};
 
+type Color = (u8, u8, u8);
+
+const THEME_FG: Color = (212, 212, 212);
+const THEME_BG: Color = (30, 30, 30);
+const THEME_BLACK: Color = (37, 37, 38);
+const THEME_RED: Color = (160, 37, 58);
+const THEME_GREEN: Color = (155, 58, 72);
+const THEME_YELLOW: Color = (220, 220, 170);
+const THEME_BLUE: Color = (194, 74, 90);
+const THEME_MAGENTA: Color = (197, 134, 192);
+const THEME_CYAN: Color = (78, 201, 176);
+const THEME_WHITE: Color = (212, 212, 212);
+const THEME_ORANGE: Color = (206, 145, 120);
+
 struct Style {
     symbol: &'static str,
     r: u8,
@@ -14,7 +28,7 @@ struct Style {
 }
 
 const CODEX_MARK: &str = "◎";
-const BUDDY_WIDTH: usize = 9;        // 1 space + 8-char expression (5-char face + 3-char accessory zone)
+const BUDDY_WIDTH: usize = 9; // 1 space + 8-char expression (5-char face + 3-char accessory zone)
 const BUDDY_SPEECH_WIDTH: usize = 20; // speech text zone to the left of the buddy
 
 fn activity_priority(activity: &Activity) -> u8 {
@@ -42,123 +56,50 @@ fn tool_symbol(name: &str) -> &'static str {
     }
 }
 
-// Claude: warm orange/amber palette — brand color ~(210, 105, 58)
-fn activity_style_claude(activity: &Activity) -> Style {
-    match activity {
-        Activity::Init => Style {
-            symbol: "◆",
-            r: 175,
-            g: 165,
-            b: 155,
-        },
-        Activity::Thinking => Style {
-            symbol: "●",
-            r: 215,
-            g: 145,
-            b: 95,
-        },
-        Activity::Tool(name) => Style {
-            symbol: tool_symbol(name),
-            r: 240,
-            g: 150,
-            b: 60,
-        },
-        Activity::Prompting => Style {
-            symbol: "▶",
-            r: 100,
-            g: 210,
-            b: 140,
-        },
-        Activity::Waiting => Style {
-            symbol: "⚠",
-            r: 255,
-            g: 60,
-            b: 60,
-        },
-        Activity::Notification => Style {
-            symbol: "◇",
-            r: 220,
-            g: 180,
-            b: 110,
-        },
-        Activity::Done => Style {
-            symbol: "✓",
-            r: 100,
-            g: 210,
-            b: 140,
-        },
-        Activity::AgentDone => Style {
-            symbol: "✓",
-            r: 80,
-            g: 195,
-            b: 120,
-        },
-        Activity::Idle => Style {
-            symbol: "○",
-            r: 175,
-            g: 165,
-            b: 155,
-        },
+fn style(symbol: &'static str, color: Color) -> Style {
+    Style {
+        symbol,
+        r: color.0,
+        g: color.1,
+        b: color.2,
     }
 }
 
-// Codex / OpenAI: teal-green palette — brand color #10A37F = (16, 163, 127)
+fn dim(color: Color, pct: u32) -> Color {
+    (
+        (color.0 as u32 * pct / 100) as u8,
+        (color.1 as u32 * pct / 100) as u8,
+        (color.2 as u32 * pct / 100) as u8,
+    )
+}
+
+// Claude uses the theme's orange/yellow/red accents.
+fn activity_style_claude(activity: &Activity) -> Style {
+    match activity {
+        Activity::Init => style("◆", dim(THEME_WHITE, 82)),
+        Activity::Thinking => style("●", THEME_ORANGE),
+        Activity::Tool(name) => style(tool_symbol(name), THEME_ORANGE),
+        Activity::Prompting => style("▶", THEME_CYAN),
+        Activity::Waiting => style("⚠", THEME_YELLOW),
+        Activity::Notification => style("◇", THEME_YELLOW),
+        Activity::Done => style("✓", THEME_CYAN),
+        Activity::AgentDone => style("✓", THEME_GREEN),
+        Activity::Idle => style("○", dim(THEME_FG, 72)),
+    }
+}
+
+// Codex uses the theme's cyan accent.
 fn activity_style_codex(activity: &Activity) -> Style {
     match activity {
-        Activity::Init => Style {
-            symbol: CODEX_MARK,
-            r: 155,
-            g: 235,
-            b: 210,
-        },
-        Activity::Thinking => Style {
-            symbol: "●",
-            r: 95,
-            g: 220,
-            b: 195,
-        },
-        Activity::Tool(name) => Style {
-            symbol: tool_symbol(name),
-            r: 70,
-            g: 235,
-            b: 200,
-        },
-        Activity::Prompting => Style {
-            symbol: "▶",
-            r: 90,
-            g: 215,
-            b: 185,
-        },
-        Activity::Waiting => Style {
-            symbol: "⚠",
-            r: 255,
-            g: 60,
-            b: 60,
-        },
-        Activity::Notification => Style {
-            symbol: "◇",
-            r: 130,
-            g: 230,
-            b: 205,
-        },
-        Activity::Done => Style {
-            symbol: CODEX_MARK,
-            r: 105,
-            g: 225,
-            b: 200,
-        },
-        Activity::AgentDone => Style {
-            symbol: CODEX_MARK,
-            r: 90,
-            g: 210,
-            b: 185,
-        },
-        Activity::Idle => Style {
-            symbol: CODEX_MARK,
-            r: 155,
-            g: 235,
-            b: 210,
-        },
+        Activity::Init => style(CODEX_MARK, dim(THEME_CYAN, 88)),
+        Activity::Thinking => style("●", THEME_CYAN),
+        Activity::Tool(name) => style(tool_symbol(name), THEME_CYAN),
+        Activity::Prompting => style("▶", THEME_CYAN),
+        Activity::Waiting => style("⚠", THEME_YELLOW),
+        Activity::Notification => style("◇", THEME_CYAN),
+        Activity::Done => style(CODEX_MARK, THEME_CYAN),
+        Activity::AgentDone => style(CODEX_MARK, dim(THEME_CYAN, 82)),
+        Activity::Idle => style(CODEX_MARK, dim(THEME_CYAN, 78)),
     }
 }
 
@@ -177,6 +118,10 @@ fn bg(r: u8, g: u8, b: u8) -> String {
     format!("\x1b[48;2;{r};{g};{b}m")
 }
 
+fn fg_color(color: Color) -> String {
+    fg(color.0, color.1, color.2)
+}
+
 fn display_width(s: &str) -> usize {
     s.chars().count()
 }
@@ -187,13 +132,12 @@ const ELAPSED_THRESHOLD: u64 = 30;
 const PILL_LEFT_CAP: &str = "\u{e0b6}";
 const PILL_RIGHT_CAP: &str = "\u{e0b4}";
 
-type Color = (u8, u8, u8);
-const BAR_BG: Color = (30, 30, 30);
-const PREFIX_BG: Color = (160, 37, 58);
-const PREFIX_BG_SETTINGS: Color = (194, 74, 90);
-const TAB_BG_ACTIVE: Color = (194, 74, 90);
-const TAB_BG_INACTIVE: Color = (55, 40, 45);
-const FLASH_BG_BRIGHT: Color = (220, 220, 170);
+const BAR_BG: Color = THEME_BG;
+const PREFIX_BG: Color = THEME_RED;
+const PREFIX_BG_SETTINGS: Color = THEME_BLUE;
+const TAB_BG_ACTIVE: Color = THEME_BLUE;
+const TAB_BG_INACTIVE: Color = THEME_BLACK;
+const FLASH_BG_BRIGHT: Color = THEME_YELLOW;
 
 fn high_contrast_text_color(bg: Color) -> Color {
     let (r, g, b) = bg;
@@ -269,20 +213,20 @@ fn format_cwd_label(cwd: Option<&str>) -> Option<String> {
 
 fn mode_style(mode: InputMode) -> (Color, &'static str) {
     match mode {
-        InputMode::Normal => ((194, 74, 90), "NORMAL"),
-        InputMode::Locked => ((160, 37, 58), "LOCKED"),
-        InputMode::Pane => ((78, 201, 176), "PANE"),
-        InputMode::Tab => ((197, 134, 192), "TAB"),
-        InputMode::Resize => ((206, 145, 120), "RESIZE"),
-        InputMode::Move => ((206, 145, 120), "MOVE"),
-        InputMode::Scroll => ((220, 220, 170), "SCROLL"),
-        InputMode::EnterSearch => ((220, 220, 170), "SEARCH"),
-        InputMode::Search => ((220, 220, 170), "SEARCH"),
-        InputMode::RenameTab => ((220, 220, 170), "RENAME"),
-        InputMode::RenamePane => ((220, 220, 170), "RENAME"),
-        InputMode::Session => ((197, 134, 192), "SESSION"),
-        InputMode::Prompt => ((78, 201, 176), "PROMPT"),
-        InputMode::Tmux => ((78, 201, 176), "TMUX"),
+        InputMode::Normal => (THEME_BLUE, "NORMAL"),
+        InputMode::Locked => (THEME_RED, "LOCKED"),
+        InputMode::Pane => (THEME_CYAN, "PANE"),
+        InputMode::Tab => (THEME_MAGENTA, "TAB"),
+        InputMode::Resize => (THEME_ORANGE, "RESIZE"),
+        InputMode::Move => (THEME_ORANGE, "MOVE"),
+        InputMode::Scroll => (THEME_YELLOW, "SCROLL"),
+        InputMode::EnterSearch => (THEME_YELLOW, "SEARCH"),
+        InputMode::Search => (THEME_YELLOW, "SEARCH"),
+        InputMode::RenameTab => (THEME_YELLOW, "RENAME"),
+        InputMode::RenamePane => (THEME_YELLOW, "RENAME"),
+        InputMode::Session => (THEME_MAGENTA, "SESSION"),
+        InputMode::Prompt => (THEME_CYAN, "PROMPT"),
+        InputMode::Tmux => (THEME_CYAN, "TMUX"),
     }
 }
 
@@ -305,34 +249,27 @@ fn buddy_faces(activity: &Activity, frame: u8) -> (&'static str, (u8, u8, u8)) {
     match activity {
         // Idle: 8-frame cycle at 500ms — 7 open + 1 blink (frame 7)
         Activity::Idle => {
-            if f % 8 == 7 { ("(-_-)   ", (130, 125, 120)) }
-            else           { ("(^-^)   ", (130, 125, 120)) }
+            if f % 8 == 7 {
+                ("(-_-)   ", dim(THEME_FG, 62))
+            } else {
+                ("(^-^)   ", dim(THEME_FG, 62))
+            }
         }
-        Activity::Init         => ("(?_?)   ", (175, 165, 155)),
-        Activity::Prompting    => ("(~_~)   ", (100, 200, 155)),
-        Activity::Notification => ("(oAo)   ", (220, 180, 110)),
-        Activity::Done         => ("(^v^)   ", (100, 210, 140)),
-        Activity::AgentDone    => ("(-v-)   ", (80,  195, 120)),
-        Activity::Tool(_)      => ("(>v<)   ", (240, 150, 60)),
+        Activity::Init => ("(?_?)   ", dim(THEME_FG, 82)),
+        Activity::Prompting => ("(~_~)   ", THEME_CYAN),
+        Activity::Notification => ("(oAo)   ", THEME_YELLOW),
+        Activity::Done => ("(^v^)   ", THEME_CYAN),
+        Activity::AgentDone => ("(-v-)   ", THEME_GREEN),
+        Activity::Tool(_) => ("(>v<)   ", THEME_ORANGE),
         // Thinking: 4-frame cycle at 250ms — dots grow left to right
         Activity::Thinking => {
-            let frames = [
-                "(*_*)   ",
-                "(o_o).  ",
-                "(*_*).. ",
-                "(o_o)...",
-            ];
-            (frames[f % 4], (215, 145, 95))
+            let frames = ["(*_*)   ", "(o_o).  ", "(*_*).. ", "(o_o)..."];
+            (frames[f % 4], THEME_ORANGE)
         }
         // Waiting: 4-frame cycle at 250ms — exclamations escalate
         Activity::Waiting => {
-            let frames = [
-                "(>_<)   ",
-                "(>_<)!  ",
-                "(TwT)!! ",
-                "(TwT)!!!",
-            ];
-            (frames[f % 4], (255, 60, 60))
+            let frames = ["(>_<)   ", "(>_<)!  ", "(TwT)!! ", "(TwT)!!!"];
+            (frames[f % 4], THEME_YELLOW)
         }
     }
 }
@@ -343,34 +280,27 @@ fn cat_faces(activity: &Activity, frame: u8) -> (&'static str, (u8, u8, u8)) {
     match activity {
         // Idle: 8-frame cycle at 500ms — 7 open + 1 blink (frame 7)
         Activity::Idle => {
-            if f % 8 == 7 { ("=^-^=   ", (130, 125, 120)) }
-            else           { ("=^.^=   ", (130, 125, 120)) }
+            if f % 8 == 7 {
+                ("=^-^=   ", dim(THEME_FG, 62))
+            } else {
+                ("=^.^=   ", dim(THEME_FG, 62))
+            }
         }
-        Activity::Init         => ("=^o^=   ", (175, 165, 155)),
-        Activity::Prompting    => ("=^,^=   ", (100, 200, 155)),
-        Activity::Notification => ("=^!^=   ", (220, 180, 110)),
-        Activity::Done         => ("=^v^=   ", (100, 210, 140)),
-        Activity::AgentDone    => ("=^u^=   ", (80,  195, 120)),
-        Activity::Tool(_)      => ("=^>^=   ", (240, 150, 60)),
+        Activity::Init => ("=^o^=   ", dim(THEME_FG, 82)),
+        Activity::Prompting => ("=^,^=   ", THEME_CYAN),
+        Activity::Notification => ("=^!^=   ", THEME_YELLOW),
+        Activity::Done => ("=^v^=   ", THEME_CYAN),
+        Activity::AgentDone => ("=^u^=   ", THEME_GREEN),
+        Activity::Tool(_) => ("=^>^=   ", THEME_ORANGE),
         // Thinking: dots grow across the accessory zone
         Activity::Thinking => {
-            let frames = [
-                "=^*^=   ",
-                "=^*^=.  ",
-                "=^o^=.. ",
-                "=^*^=...",
-            ];
-            (frames[f % 4], (215, 145, 95))
+            let frames = ["=^*^=   ", "=^*^=.  ", "=^o^=.. ", "=^*^=..."];
+            (frames[f % 4], THEME_ORANGE)
         }
         // Waiting: distressed cat, exclamations escalate
         Activity::Waiting => {
-            let frames = [
-                "=ToT=   ",
-                "=ToT=!  ",
-                "=ToT=!! ",
-                "=ToT=!!!",
-            ];
-            (frames[f % 4], (255, 60, 60))
+            let frames = ["=ToT=   ", "=ToT=!  ", "=ToT=!! ", "=ToT=!!!"];
+            (frames[f % 4], THEME_YELLOW)
         }
     }
 }
@@ -399,27 +329,72 @@ fn kaomoji_speech(activity: &Activity, frame: u8, speech_var: usize) -> &'static
             }
         }
         Activity::Thinking => {
-            let lines = ["hang on...", "", "crunching...", "", "this is fine...", "", "almost!", ""];
+            let lines = [
+                "hang on...",
+                "",
+                "crunching...",
+                "",
+                "this is fine...",
+                "",
+                "almost!",
+                "",
+            ];
             lines[speech_var % lines.len()]
         }
         Activity::Waiting => {
-            let lines = ["your move...", "", "hello?", "", "anytime now...", "HELLO?!"];
+            let lines = [
+                "your move...",
+                "",
+                "hello?",
+                "",
+                "anytime now...",
+                "HELLO?!",
+            ];
             lines[speech_var % lines.len()]
         }
         Activity::Done => {
-            let lines = ["nailed it!", "ez. next?", "", "was never in doubt", "ship it", "", "flawless", "clean."];
+            let lines = [
+                "nailed it!",
+                "ez. next?",
+                "",
+                "was never in doubt",
+                "ship it",
+                "",
+                "flawless",
+                "clean.",
+            ];
             lines[speech_var % lines.len()]
         }
         Activity::Tool(_) => {
-            let lines = ["on it!", "", "deploying minions", "executing...", "", "running... trust"];
+            let lines = [
+                "on it!",
+                "",
+                "deploying minions",
+                "executing...",
+                "",
+                "running... trust",
+            ];
             lines[speech_var % lines.len()]
         }
         Activity::Init => {
-            let lines = ["loading...", "booting brain...", "", "systems online", "waking up..."];
+            let lines = [
+                "loading...",
+                "booting brain...",
+                "",
+                "systems online",
+                "waking up...",
+            ];
             lines[speech_var % lines.len()]
         }
         Activity::Prompting => {
-            let lines = ["go ahead...", "", "listening...", "tell me everything", "", "i'm all ears"];
+            let lines = [
+                "go ahead...",
+                "",
+                "listening...",
+                "tell me everything",
+                "",
+                "i'm all ears",
+            ];
             lines[speech_var % lines.len()]
         }
         Activity::Notification => {
@@ -427,7 +402,14 @@ fn kaomoji_speech(activity: &Activity, frame: u8, speech_var: usize) -> &'static
             lines[speech_var % lines.len()]
         }
         Activity::AgentDone => {
-            let lines = ["sub returned", "", "delegation done", "good little agent", "", "welcome back"];
+            let lines = [
+                "sub returned",
+                "",
+                "delegation done",
+                "good little agent",
+                "",
+                "welcome back",
+            ];
             lines[speech_var % lines.len()]
         }
     }
@@ -457,7 +439,16 @@ fn cat_speech(activity: &Activity, frame: u8, speech_var: usize) -> &'static str
             }
         }
         Activity::Thinking => {
-            let lines = ["mrrrow...", "", "*paw on chin*", "", "mew mew mew...", "", "*pounces idea*", ""];
+            let lines = [
+                "mrrrow...",
+                "",
+                "*paw on chin*",
+                "",
+                "mew mew mew...",
+                "",
+                "*pounces idea*",
+                "",
+            ];
             lines[speech_var % lines.len()]
         }
         Activity::Waiting => {
@@ -465,11 +456,27 @@ fn cat_speech(activity: &Activity, frame: u8, speech_var: usize) -> &'static str
             lines[speech_var % lines.len()]
         }
         Activity::Done => {
-            let lines = ["purr purr :3", "*happy trill*", "", "mrow! nice!", "*head boop*", "", "prrrfect!", "mrrrow~"];
+            let lines = [
+                "purr purr :3",
+                "*happy trill*",
+                "",
+                "mrow! nice!",
+                "*head boop*",
+                "",
+                "prrrfect!",
+                "mrrrow~",
+            ];
             lines[speech_var % lines.len()]
         }
         Activity::Tool(_) => {
-            let lines = ["*chases cursor*", "", "pounce!!", "*swats bugs*", "", "mrrrow! on it!"];
+            let lines = [
+                "*chases cursor*",
+                "",
+                "pounce!!",
+                "*swats bugs*",
+                "",
+                "mrrrow! on it!",
+            ];
             lines[speech_var % lines.len()]
         }
         Activity::Init => {
@@ -485,7 +492,14 @@ fn cat_speech(activity: &Activity, frame: u8, speech_var: usize) -> &'static str
             lines[speech_var % lines.len()]
         }
         Activity::AgentDone => {
-            let lines = ["*kneads paw*", "", "purr purr...", "good kitty help", "", "mrrrow :3"];
+            let lines = [
+                "*kneads paw*",
+                "",
+                "purr purr...",
+                "good kitty help",
+                "",
+                "mrrrow :3",
+            ];
             lines[speech_var % lines.len()]
         }
     }
@@ -503,7 +517,7 @@ fn render_buddy_speech(state: &State, buf: &mut String, col: &mut usize) {
 
     let (_, (r, g, b)) = match state.settings.buddy_style {
         BuddyStyle::Cat => cat_faces(&activity, frame),
-        _               => buddy_faces(&activity, frame),
+        _ => buddy_faces(&activity, frame),
     };
     let (sr, sg, sb) = (
         (r as u32 * 55 / 100) as u8,
@@ -513,7 +527,7 @@ fn render_buddy_speech(state: &State, buf: &mut String, col: &mut usize) {
 
     let text = match state.settings.buddy_style {
         BuddyStyle::Cat => cat_speech(&activity, frame, speech_var),
-        _               => kaomoji_speech(&activity, frame, speech_var),
+        _ => kaomoji_speech(&activity, frame, speech_var),
     };
 
     let text_len = text.len();
@@ -539,7 +553,7 @@ fn render_buddy(state: &State, buf: &mut String, col: &mut usize) {
     };
     let (expr, (r, g, b)) = match state.settings.buddy_style {
         BuddyStyle::Cat => cat_faces(&activity, frame),
-        _               => buddy_faces(&activity, frame),
+        _ => buddy_faces(&activity, frame),
     };
     let _ = write!(
         buf,
@@ -605,7 +619,7 @@ pub fn render_status_bar(state: &mut State, _rows: usize, cols: usize) {
             buf,
             "{}{}{BOLD}{prefix_text}",
             bg(prefix_bg.0, prefix_bg.1, prefix_bg.2),
-            fg(255, 255, 255)
+            fg_color(THEME_WHITE)
         );
         col += prefix_text_width;
         pill_close(&mut buf, &mut col, prefix_bg);
@@ -633,7 +647,7 @@ pub fn render_status_bar(state: &mut State, _rows: usize, cols: usize) {
             buf,
             "{}{}{BOLD}{prefix_text}",
             bg(prefix_bg.0, prefix_bg.1, prefix_bg.2),
-            fg(255, 255, 255)
+            fg_color(THEME_WHITE)
         );
         col += prefix_text_width;
         pill_close(&mut buf, &mut col, prefix_bg);
@@ -648,7 +662,7 @@ pub fn render_status_bar(state: &mut State, _rows: usize, cols: usize) {
             buf,
             "{}{}{BOLD}{short}",
             bg(prefix_bg.0, prefix_bg.1, prefix_bg.2),
-            fg(255, 255, 255)
+            fg_color(THEME_WHITE)
         );
         col += display_width(&short);
         pill_close(&mut buf, &mut col, prefix_bg);
@@ -893,13 +907,13 @@ fn render_tabs(
             };
 
             let (name_fg, name_bold) = if is_flash_bright {
-                (fg(255, 255, 80), true)
+                (fg_color(THEME_RED), true)
             } else if is_active {
-                (fg(255, 255, 255), true)
+                (fg_color(THEME_WHITE), true)
             } else {
                 let inactive = match winning.source {
-                    AgentSource::Claude => fg(235, 195, 165), // warm amber
-                    AgentSource::Codex => fg(175, 240, 225),  // bright teal
+                    AgentSource::Claude => fg_color(THEME_ORANGE),
+                    AgentSource::Codex => fg_color(THEME_CYAN),
                 };
                 (inactive, false)
             };
@@ -912,7 +926,7 @@ fn render_tabs(
             if let Some(s) = claude_session {
                 let style = activity_style(&s.activity, AgentSource::Claude);
                 let sym_fg = if is_flash_bright {
-                    fg(255, 255, 80)
+                    fg_color(THEME_RED)
                 } else {
                     fg(style.r, style.g, style.b)
                 };
@@ -930,7 +944,7 @@ fn render_tabs(
             if let Some(s) = codex_session {
                 let style = activity_style(&s.activity, AgentSource::Codex);
                 let sym_fg = if is_flash_bright {
-                    fg(255, 255, 80)
+                    fg_color(THEME_RED)
                 } else {
                     fg(style.r, style.g, style.b)
                 };
@@ -965,7 +979,7 @@ fn render_tabs(
 
             // Fullscreen indicator
             if tab.is_fullscreen_active && *col + 4 < cols {
-                let _ = write!(buf, " {}F{RESET}{tab_bg_str}", fg(255, 200, 60));
+                let _ = write!(buf, " {}F{RESET}{tab_bg_str}", fg_color(THEME_YELLOW));
                 *col += 2;
             }
 
@@ -991,9 +1005,9 @@ fn render_tabs(
         } else {
             // Untracked tab — no symbol, dimmer name
             let name_fg = if is_active {
-                fg(220, 215, 230)
+                fg_color(THEME_WHITE)
             } else {
-                fg(170, 165, 185)
+                fg_color(dim(THEME_FG, 72))
             };
             let name_bold = is_active;
 
@@ -1007,7 +1021,7 @@ fn render_tabs(
             }
 
             if tab.is_fullscreen_active && *col + 4 < cols {
-                let _ = write!(buf, " {}F{RESET}{tab_bg_str}", fg(255, 200, 60));
+                let _ = write!(buf, " {}F{RESET}{tab_bg_str}", fg_color(THEME_YELLOW));
                 *col += 2;
             }
 
@@ -1029,22 +1043,47 @@ fn render_tabs(
 
 fn notify_mode_label(mode: NotifyMode) -> (&'static str, &'static str, String, String) {
     match mode {
-        NotifyMode::Always => ("●", "Notify: always", fg(78, 201, 176), fg(212, 212, 212)),
+        NotifyMode::Always => (
+            "●",
+            "Notify: always",
+            fg_color(THEME_CYAN),
+            fg_color(THEME_FG),
+        ),
         NotifyMode::Unfocused => (
             "◐",
             "Notify: unfocused",
-            fg(206, 145, 120),
-            fg(206, 145, 120),
+            fg_color(THEME_ORANGE),
+            fg_color(THEME_ORANGE),
         ),
-        NotifyMode::Never => ("○", "Notify: off", fg(110, 110, 110), fg(110, 110, 110)),
+        NotifyMode::Never => (
+            "○",
+            "Notify: off",
+            fg_color(dim(THEME_FG, 52)),
+            fg_color(dim(THEME_FG, 52)),
+        ),
     }
 }
 
 fn flash_mode_label(mode: FlashMode) -> (&'static str, &'static str, String, String) {
     match mode {
-        FlashMode::Persist => ("●", "Flash: persist", fg(78, 201, 176), fg(212, 212, 212)),
-        FlashMode::Once => ("◐", "Flash: brief", fg(206, 145, 120), fg(206, 145, 120)),
-        FlashMode::Off => ("○", "Flash: off", fg(110, 110, 110), fg(110, 110, 110)),
+        FlashMode::Persist => (
+            "●",
+            "Flash: persist",
+            fg_color(THEME_CYAN),
+            fg_color(THEME_FG),
+        ),
+        FlashMode::Once => (
+            "◐",
+            "Flash: brief",
+            fg_color(THEME_ORANGE),
+            fg_color(THEME_ORANGE),
+        ),
+        FlashMode::Off => (
+            "○",
+            "Flash: off",
+            fg_color(dim(THEME_FG, 52)),
+            fg_color(dim(THEME_FG, 52)),
+        ),
     }
 }
 
@@ -1117,9 +1156,13 @@ fn render_settings_menu(state: &mut State, buf: &mut String, col: &mut usize) {
         *col += 2;
         let enabled = state.settings.elapsed_time;
         let (symbol, sym_color, label_color) = if enabled {
-            ("●", fg(78, 201, 176), fg(212, 212, 212))
+            ("●", fg_color(THEME_CYAN), fg_color(THEME_FG))
         } else {
-            ("○", fg(110, 110, 110), fg(110, 110, 110))
+            (
+                "○",
+                fg_color(dim(THEME_FG, 52)),
+                fg_color(dim(THEME_FG, 52)),
+            )
         };
         let label = if enabled {
             "Elapsed time: on"
@@ -1144,9 +1187,13 @@ fn render_settings_menu(state: &mut State, buf: &mut String, col: &mut usize) {
         *col += 2;
         let enabled = state.settings.mode_indicator;
         let (symbol, sym_color, label_color) = if enabled {
-            ("●", fg(78, 201, 176), fg(212, 212, 212))
+            ("●", fg_color(THEME_CYAN), fg_color(THEME_FG))
         } else {
-            ("○", fg(110, 110, 110), fg(110, 110, 110))
+            (
+                "○",
+                fg_color(dim(THEME_FG, 52)),
+                fg_color(dim(THEME_FG, 52)),
+            )
         };
         let label = if enabled {
             "Mode indicator: on"
@@ -1171,9 +1218,13 @@ fn render_settings_menu(state: &mut State, buf: &mut String, col: &mut usize) {
         *col += 2;
         let enabled = state.settings.cwd;
         let (symbol, sym_color, label_color) = if enabled {
-            ("●", fg(78, 201, 176), fg(212, 212, 212))
+            ("●", fg_color(THEME_CYAN), fg_color(THEME_FG))
         } else {
-            ("○", fg(110, 110, 110), fg(110, 110, 110))
+            (
+                "○",
+                fg_color(dim(THEME_FG, 52)),
+                fg_color(dim(THEME_FG, 52)),
+            )
         };
         let label = if enabled { "CWD: on" } else { "CWD: off" };
         render_tristate(
@@ -1196,20 +1247,20 @@ fn render_settings_menu(state: &mut State, buf: &mut String, col: &mut usize) {
             BuddyStyle::Off => (
                 "○",
                 "Buddy: off",
-                fg(110, 110, 110),
-                fg(110, 110, 110),
+                fg_color(dim(THEME_FG, 52)),
+                fg_color(dim(THEME_FG, 52)),
             ),
             BuddyStyle::Kaomoji => (
                 "●",
                 "Buddy: kaomoji",
-                fg(78, 201, 176),
-                fg(212, 212, 212),
+                fg_color(THEME_CYAN),
+                fg_color(THEME_FG),
             ),
             BuddyStyle::Cat => (
                 "◐",
                 "Buddy: cat",
-                fg(215, 145, 95),
-                fg(212, 212, 212),
+                fg_color(THEME_ORANGE),
+                fg_color(THEME_FG),
             ),
         };
         render_tristate(
@@ -1228,7 +1279,7 @@ fn render_settings_menu(state: &mut State, buf: &mut String, col: &mut usize) {
     let _ = write!(buf, "  ");
     *col += 2;
     let close_start = *col;
-    let _ = write!(buf, "{}×", fg(255, 60, 60));
+    let _ = write!(buf, "{}×", fg_color(THEME_RED));
     *col += 1;
 
     state.menu_click_regions.push(MenuClickRegion {

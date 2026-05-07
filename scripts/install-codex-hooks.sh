@@ -85,15 +85,23 @@ install() {
   echo "Hook script: $HOOK_SCRIPT"
   echo "Events: PreToolUse, PostToolUse, PermissionRequest, SessionStart, UserPromptSubmit, Stop"
 
-  # Ensure codex_hooks feature is enabled in config.toml
+  # Ensure hooks features are enabled in config.toml. Recent Codex exposes the
+  # stable feature as "hooks"; keep "codex_hooks" for older builds/docs.
   if [ -f "$CONFIG_FILE" ]; then
-    if ! grep -q 'codex_hooks' "$CONFIG_FILE" 2>/dev/null; then
-      printf '\n[features]\ncodex_hooks = true\n' >> "$CONFIG_FILE"
+    if ! grep -q '^\[features\]' "$CONFIG_FILE" 2>/dev/null; then
+      printf '\n[features]\n' >> "$CONFIG_FILE"
+    fi
+    if ! grep -q '^hooks[[:space:]]*=' "$CONFIG_FILE" 2>/dev/null; then
+      sed -i '/^\[features\]/a hooks = true' "$CONFIG_FILE"
+      echo "Enabled hooks feature in $CONFIG_FILE"
+    fi
+    if ! grep -q '^codex_hooks[[:space:]]*=' "$CONFIG_FILE" 2>/dev/null; then
+      sed -i '/^\[features\]/a codex_hooks = true' "$CONFIG_FILE"
       echo "Enabled codex_hooks feature in $CONFIG_FILE"
     fi
   else
-    printf '[features]\ncodex_hooks = true\n' > "$CONFIG_FILE"
-    echo "Created $CONFIG_FILE with codex_hooks feature enabled"
+    printf '[features]\nhooks = true\ncodex_hooks = true\n' > "$CONFIG_FILE"
+    echo "Created $CONFIG_FILE with hooks features enabled"
   fi
 }
 

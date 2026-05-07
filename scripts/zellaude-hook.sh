@@ -49,7 +49,9 @@ PAYLOAD=$(jq -nc \
 
 # Permission request: bell + desktop notification
 if [ "$HOOK_EVENT" = "PermissionRequest" ]; then
-  printf '\a' > /dev/tty 2>/dev/null || true
+  if [ -e /dev/tty ]; then
+    (printf '\a' >/dev/tty) 2>/dev/null || true
+  fi
 
   # Read notification setting (default: Always)
   SETTINGS_FILE="$HOME/.config/zellij/plugins/zellaude.json"
