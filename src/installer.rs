@@ -158,13 +158,16 @@ jq --argjson events "$EVENTS" --argjson entry "$ENTRY" '
   reduce ($events[]) as $event (.; .hooks[$event] = (.hooks[$event] // []) + $entry)
 ' "$HOOKS_FILE" > "$tmp" && mv "$tmp" "$HOOKS_FILE"
 
-# Ensure codex_hooks feature is enabled
+# Ensure hooks feature is enabled
 if [ -f "$CONFIG_FILE" ]; then
-  if ! grep -q 'codex_hooks' "$CONFIG_FILE" 2>/dev/null; then
-    printf '\n[features]\ncodex_hooks = true\n' >> "$CONFIG_FILE"
+  if ! grep -q '^\[features\]' "$CONFIG_FILE" 2>/dev/null; then
+    printf '\n[features]\n' >> "$CONFIG_FILE"
+  fi
+  if ! grep -q '^hooks[[:space:]]*=' "$CONFIG_FILE" 2>/dev/null; then
+    sed -i '/^\[features\]/a hooks = true' "$CONFIG_FILE"
   fi
 else
-  printf '[features]\ncodex_hooks = true\n' > "$CONFIG_FILE"
+  printf '[features]\nhooks = true\n' > "$CONFIG_FILE"
 fi
 
 echo "installed"
